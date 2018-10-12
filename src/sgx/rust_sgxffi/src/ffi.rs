@@ -211,6 +211,13 @@ pub fn verify_wait_certificate(eid: &mut r_sgx_enclave_id_t,
     }
 }
 
+pub fn create_char_ptr_from_string(
+    string: String
+) -> *mut ::std::os::raw::c_char {
+    let c_string = CString::new(string).unwrap();
+    c_string.into_raw()
+}
+
 pub fn create_string_from_char_ptr(cchar_ptr : *mut ::std::os::raw::c_char)
                                    -> String {
     let c_str: &CStr = unsafe { CStr::from_ptr(cchar_ptr) };

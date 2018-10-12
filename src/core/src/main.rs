@@ -14,9 +14,11 @@
  * limitations under the License.
  * ------------------------------------------------------------------------------
  */
+
 #[macro_use]
 extern crate clap;
 extern crate serde;
+#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
@@ -33,6 +35,12 @@ extern crate zmq;
 extern crate crypto;
 extern crate bincode;
 extern crate sgxffi;
+extern crate hyper;
+extern crate ias_client;
+extern crate tokio_core;
+extern crate toml;
+#[macro_use]
+extern crate openssl;
 
 pub mod engine;
 pub mod service;
@@ -40,6 +48,9 @@ pub mod enclave_sgx;
 pub mod database;
 pub mod poet2_util;
 pub mod settings_view;
+pub mod registration;
+pub mod validator_proto;
+mod poet_config;
 
 use engine::Poet2Engine;
 use sawtooth_sdk::consensus::zmq_driver::ZmqDriver;
@@ -50,6 +61,10 @@ use log4rs::append::file::FileAppender;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Config, Root, Logger};
 use log4rs::encode::pattern::PatternEncoder;
+use std::fs::File;
+use std::io::Read;
+use self::poet_config::PoetConfig;
+use self::poet2_util::read_file_as_string;
 
 /*
  *
@@ -69,6 +84,8 @@ fn main() {
     let matches = clap_app!(sawtooth_poet =>
         (version: crate_version!())
         (about: "PoET 2 Consensus Engine")
+        (@arg config: --config +takes_value
+        "toml config file for IAS connection")
         (@arg connect: -C --connect +takes_value
          "connection endpoint url for validator")
         (@arg verbose: -v --verbose +multiple
@@ -114,10 +131,23 @@ fn main() {
         process::exit(1);
     });
 
+    // read configuration file, i.e. TOML confiuration file
+    let config_file = match matches.value_of("config") {
+        Some(config_present) => config_present,
+        None => panic!("Config file is not input, use -h for information"),
+    };
+
+    let mut file_contents = read_file_as_string(config_file);
+    info!("Read file contents: {}", file_contents);
+    let config: PoetConfig = match toml::from_str(file_contents.as_str()) {
+        Ok(config_read) => config_read,
+        Err(err) => panic!("Error converting config file: {}", err),
+    };
+
     let (driver, _stop_handle) = ZmqDriver::new();
     info!("Starting the ZMQ Driver...");
 
-    driver.start(&endpoint, Poet2Engine::new()).unwrap_or_else(|_err| {
+    driver.start(&endpoint, Poet2Engine::new(config)).unwrap_or_else(|_err| {
         process::exit(1);
     });
 }
