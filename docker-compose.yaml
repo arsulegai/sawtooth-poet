@@ -13,7 +13,7 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-version: '3.6'
+version: '2.1'
 
 volumes:
   cargo-registry:
@@ -76,6 +76,10 @@ services:
     working_dir: '/project/sawtooth-poet2/src/core'
     depends_on:
       - validator-1
+    environment:
+      - "http_proxy=${http_proxy}"
+      - "https_proxy=${https_proxy}"
+      - "SGX_MODE=TRUE"
     entrypoint: "bash -c \"\
         source /project/sawtooth-poet2/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet2 -- -C tcp://validator-1:5050 -v \""

@@ -39,8 +39,9 @@ mod tests {
                                                 basename:0 as *mut c_char};
 
         //spid should be a valid UTF-8 string of length 32. create all AAAAA's
-        let spid_vec = vec![0x41; 32]; 
-        let spid_str = str::from_utf8(&spid_vec).unwrap();
+        //let spid_vec = vec![0x41; 32];
+        //let spid_str = str::from_utf8(&spid_vec).unwrap();
+        let spid_str = "6A508CE8D1C4DE2B30E60730D0B39632";
         let mut lib_path = std::env::current_dir().unwrap();
         lib_path.push("../../build/bin/libpoet_enclave.signed.so");
         let bin_path = &lib_path.into_os_string().into_string().unwrap();
@@ -61,8 +62,9 @@ mod tests {
                                                 basename:0 as *mut c_char};
 
         //spid should be a valid UTF-8 string of length 32. create all AAAAA's
-        let spid_vec = vec![0x41; 32];
-        let spid_str = str::from_utf8(&spid_vec).unwrap();
+        //let spid_vec = vec![0x41; 32];
+        //let spid_str = str::from_utf8(&spid_vec).unwrap();
+        let spid_str = "6A508CE8D1C4DE2B30E60730D0B39632";
         let mut lib_path = std::env::current_dir().unwrap();
         lib_path.push("../../build/bin/libpoet_enclave.signed.so");
         let bin_path = &lib_path.into_os_string().into_string().unwrap();

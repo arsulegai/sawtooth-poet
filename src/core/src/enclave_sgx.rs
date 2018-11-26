@@ -83,9 +83,9 @@ impl EnclaveConfig {
                                                               basename:0 as *mut c_char};
 
         //SPID needs to be read from config file
-    	let spid_vec = vec![0x41; 32]; 
-        let spid_str = str::from_utf8(&spid_vec).unwrap();
-
+    	//let spid_vec = vec![0x41; 32];
+        //let spid_str = str::from_utf8(&spid_vec).unwrap();
+        let spid_str = "6A508CE8D1C4DE2B30E60730D0B396FF";
         let mut lib_path = env::current_dir().unwrap();
         lib_path.push("../build/bin/libpoet_enclave.signed.so");
         if ! Path::new(&lib_path).exists(){
