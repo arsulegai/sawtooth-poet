@@ -16,6 +16,7 @@
  */
 
 extern crate openssl;
+extern crate base64;
 
 use ias_client::{client_utils::read_body_as_string, ias_client::IasClient};
 use openssl::pkey::PKey;
@@ -168,10 +169,12 @@ impl EnclaveConfig {
         let mut proof_data_string = String::new();
         let mut epid_pseudonym = String::new();
         if self.check_if_sgx_simulator() == false {
+	    println!("quote = {}, nonce = {}", quote, nonce);
             let raw_response = self.ias_client.post_verify_attestation(
                 quote.as_ref(),
                 None,
-                None,
+                Option::from(nonce.as_str()),
+		//None,
             ).expect("Error getting AVR");
             // Response body is the AVR or Verification Report
             let verification_report = read_body_as_string(raw_response.body)
@@ -347,7 +350,7 @@ impl EnclaveConfig {
     pub fn update_sig_rl(
         &mut self
     ) {
-        if self.check_if_sgx_simulator() == false {
+        if true == false {// if self.check_if_sgx_simulator() == false {
             let epid_group = self.get_epid_group();
             let sig_rl_response =
                 self.ias_client.get_signature_revocation_list(
@@ -380,11 +383,14 @@ fn check_verification_report(
     let ias_report_key_contents = read_file_as_string(ias_report_key_file.as_str());
     let public_key = PKey::public_key_from_pem(ias_report_key_contents.as_bytes())
         .expect("Error reading IAS report key");
+
+    let temp = base64::decode(signature).unwrap();
     if !verify_message_signature(
         &public_key,
         verification_report.as_bytes(),
-        signature.as_bytes(),
+        &temp,
     ) {
+        error!("AVR {} Sig {}", verification_report, signature);
         error!("Verification report signature does not match");
         return Err(());
     }
@@ -401,7 +407,7 @@ fn check_verification_report(
         return Err(());
     }
     // 2. Does not include a revocation reason.
-    if !verification_report_dict.contains_key("revocationReason") {
+    if verification_report_dict.contains_key("revocationReason") {
         error!("AVR indicates the EPID group has been revoked");
         return Err(());
     }

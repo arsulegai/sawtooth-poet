@@ -20,7 +20,7 @@
 
 # spid is a 32-digit hex string tied to the enclave implementation
 
-spid = 'FABDEED000000000FABDEED000000000'
+spid = '6A508CE8D1C4DE2B30E60730D0B39632'
 
 # ias_url is the URL of the Intel Attestation Service (IAS) server.  The
 # example server is for debug enclaves only

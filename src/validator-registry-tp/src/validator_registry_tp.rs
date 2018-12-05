@@ -16,6 +16,7 @@
  */
 
 extern crate openssl;
+extern crate base64;
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
@@ -144,9 +145,9 @@ impl ValidatorRegistryTransactionHandler {
                                anti_sybil_id: &String,
                                validator_info: &ValidatorRegistryValidatorInfo, )
                                -> Result<(), ValueError> {
-        let validator_map_str: String = self._get_validator_map(context);
-        let mut validator_map: ValidatorRegistryValidatorMap = serde_json::from_str(&validator_map_str)
-            .expect("Error decoding Validator Registry Map string");
+        let mut validator_map = self._get_validator_map(context);
+        //let mut validator_map: ValidatorRegistryValidatorMap = serde_json::from_str(&validator_map_str)
+        //    .expect("Error decoding Validator Registry Map string");
 
         // Clean out old entries in ValidatorInfo and ValidatorMap
         // Protobuf doesn't offer delete item for ValidatorMap so create a new list
@@ -156,9 +157,14 @@ impl ValidatorRegistryTransactionHandler {
         // registry
 
         let mut validator_info_address: String;
+        for x in 0..validator_map.entries.len() {
 
+	
+/*
         for entry_str in validator_map.entries.iter_mut() {
-            let mut entry: ValidatorRegistryValidatorMapEntry =
+*/	
+	    let mut entry_str = validator_map.entries.get_mut(x).unwrap();
+	    let mut entry: ValidatorRegistryValidatorMapEntry =
                 serde_json::from_str(&entry_str)
                     .expect("Error when reading Validator Registry Map Entry");
             if anti_sybil_id == &entry.key {
@@ -169,8 +175,9 @@ impl ValidatorRegistryTransactionHandler {
                 // overwrite the old entry with new data
                 entry.key = anti_sybil_id.to_string();
                 entry.value = validator_id.to_string();
-                *entry_str = serde_json::to_string(&entry)
-                    .expect("Error converting Validator Registry Map Entry to string").to_string();
+		let mut temp = serde_json::to_string(&entry)
+                    .expect("Error converting Validator Registry Map Entry to string");
+                *entry_str = temp;//.to_string();
 
                 // add the new validator_info to state
                 validator_info_address = _get_address(validator_id);
@@ -224,7 +231,7 @@ impl ValidatorRegistryTransactionHandler {
             };
         // Verify the attestation verification report signature
         let verification_report = proof_data.verification_report;
-        let signature = proof_data.signature;
+        let signature = &proof_data.signature;
 
         // Try to get the report key from the configuration setting.  If it
         // is not there or we cannot parse it, fail verification.
@@ -232,6 +239,8 @@ impl ValidatorRegistryTransactionHandler {
             context,
             &"sawtooth.poet.report_public_key_pem".to_string())
             .expect("Error reading config setting: PoET public key");
+
+/*      TODO - need below 2 parameters for quote verification
         let valid_measurements = self._get_config_setting(
             context,
             &"sawtooth.poet.valid_enclave_measurements".to_string())
@@ -240,16 +249,17 @@ impl ValidatorRegistryTransactionHandler {
             context,
             &"sawtooth.poet.valid_enclave_basenames".to_string())
             .expect("Error reading config setting: Enclave basename");
-
+*/
         let public_key = PKey::public_key_from_pem(
             report_public_key_pem
                 .expect("Error reading public key information from on-chain setting")
                 .as_bytes()
         ).expect("Error creating Public Key object");
+        let temp = base64::decode(signature).unwrap();
         if !verify_message_signature(
             &public_key,
             verification_report.as_bytes(),
-            signature.as_bytes(),
+            &temp,
         ) {
             error!("Verification report signature does not match");
             return Err(ValueError);
@@ -322,8 +332,8 @@ impl ValidatorRegistryTransactionHandler {
     }
 
     fn _get_state(&self, context: &mut TransactionContext,
-                  address: &String, ) -> String {
-        let entries_ = context.get_state(vec![address.to_string()]); // this return Vec<u8>
+                  address: &String, ) -> Result<String, String> {
+        let entries_ = context.get_state(vec![address.to_string()]); // this return Option<Vec<u8>>
         let entries = if entries_.is_ok() {
             entries_.expect("Error reading entries")
         } else {
@@ -331,19 +341,36 @@ impl ValidatorRegistryTransactionHandler {
             panic!("Error getting context.");
         };
 
-        if entries.is_some() {
-            String::from_utf8(entries.expect("Error reading entries"))
-                .expect("Error converting entries to string")
-        } else {
-            panic!("Error getting context.");
-        }
+        match entries {
+            Some(present) => {
+           	 Ok(String::from_utf8(present)
+                	.expect("Error converting entries to string"))
+		},
+		None => {
+            		Err("Error getting context.".to_string())
+        	}
+	    }
     }
 
     fn _get_validator_map(&self,
                           context: &mut TransactionContext)
-                          -> String {
+                          -> ValidatorRegistryValidatorMap {
+        
         let address = _get_address(&String::from("validator_map"));
-        self._get_state(context, &address)
+	let state = self._get_state(context, &address);
+        let to_return = match state {
+            Ok(validator_map_str) => {
+                let mut validator_map: ValidatorRegistryValidatorMap = serde_json::from_str(&validator_map_str)
+                    .expect("Error decoding Validator Registry Map string");
+                validator_map
+            },
+            Err(error) => {
+                error!("Error in _get_validator_map {}", error);
+                ValidatorRegistryValidatorMap::default()
+            }
+        };
+        info!("Validator Map {:?}", to_return);
+        to_return
     }
 
     fn _delete_address(&self, context: &mut TransactionContext,

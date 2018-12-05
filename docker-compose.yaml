@@ -39,6 +39,7 @@ services:
     volumes:
       - keys:/shared_keys
       - poet-share:/poet_keys
+      - ./src/core/src/resources:/config
     # start the validator with an empty genesis batch
     working_dir: /root
     command: "bash -c \"\
@@ -51,6 +52,8 @@ services:
           -k /etc/sawtooth/keys/validator.priv \
           sawtooth.consensus.algorithm=poet2 \
           sawtooth.poet.block_claim_delay=0 \
+	  sawtooth.poet.report_public_key_pem=\
+	  \\\"$$(cat /config/ias_report_key.pem)\\\" \
           -o config.batch && \
         sawadm genesis \
           config-genesis.batch config.batch && \
@@ -84,6 +87,8 @@ services:
       - 'https_proxy=${https_proxy}'
       - 'no_proxy=${no_proxy},validator-1,rest-api-1'
       - 'SGX_HW_MODE=TRUE'
+    devices:
+      - "/dev/isgx:/dev/isgx"
     depends_on:
       - validator-1
       - validator-registry-tp-1
