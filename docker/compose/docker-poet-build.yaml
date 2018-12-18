@@ -29,14 +29,13 @@ services:
        - ../../:/project/sawtooth-poet/
      working_dir: '/project/sawtooth-poet/core'
      entrypoint: "bash -c \"\
-         source /project/sawtooth-poet/build_sgx_binary.sh \
-         && RUST_BACKTRACE=1 cargo build \""
+         RUST_BACKTRACE=1 cargo build\""
      stop_signal: SIGKILL
 
  validator-registry-tp:
      build:
        context: .
-       dockerfile: ../rust-installed.dockerfile
+       dockerfile: ../../validator-registry-tp/Dockerfile
        args:
          - http_proxy
          - https_proxy

@@ -23,14 +23,7 @@ volumes:
 services:
 
   validator-1:
-    image: sawtooth-poet-validator:latest
-    build:
-      context: .
-      dockerfile: ../poet-validator.dockerfile
-      args:
-        - http_proxy
-        - https_proxy
-        - no_proxy
+    image: hyperledger/sawtooth-validator:nightly
     expose:
       - 4004
       - 8800
@@ -97,7 +90,6 @@ services:
         && while [ ! -f /poet_keys/validator.pub ]; do sleep 1; done \
         && mkdir -p /etc/sawtooth/keys/ \
         && cp /poet_keys/validator.* /etc/sawtooth/keys/ \
-        && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         -C tcp://validator-1:5050 \
         --config /project/sawtooth-poet/core/resources/poet_config.toml \
@@ -138,7 +130,7 @@ services:
     image: sawtooth-poet-validator-registry-tp:latest
     build:
       context: ./
-      dockerfile: ../rust-installed.dockerfile
+      dockerfile: ../../validator-registry-tp/Dockerfile
       args:
         - http_proxy
         - https_proxy

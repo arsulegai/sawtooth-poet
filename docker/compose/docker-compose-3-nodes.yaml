@@ -23,14 +23,7 @@ volumes:
 services:
 
   validator-1:
-    image: sawtooth-poet-validator:latest
-    build:
-      context: .
-      dockerfile: ../poet-validator.dockerfile
-      args:
-        - http_proxy
-        - https_proxy
-        - no_proxy
+    image: hyperledger/sawtooth-validator:nightly
     expose:
       - 4004
       - 8800
@@ -70,14 +63,7 @@ services:
     stop_signal: SIGKILL
 
   validator-2:
-    image: sawtooth-poet-validator:latest
-    build:
-      context: .
-      dockerfile: ../poet-validator.dockerfile
-      args:
-        - http_proxy
-        - https_proxy
-        - no_proxy
+    image: hyperledger/sawtooth-validator:nightly
     expose:
       - 4004
       - 8800
@@ -106,14 +92,7 @@ services:
     stop_signal: SIGKILL
 
   validator-3:
-    image: sawtooth-poet-validator:latest
-    build:
-      context: .
-      dockerfile: ../poet-validator.dockerfile
-      args:
-        - http_proxy
-        - https_proxy
-        - no_proxy
+    image: hyperledger/sawtooth-validator:nightly
     expose:
       - 4004
       - 8800
@@ -167,7 +146,6 @@ services:
         && cp /poet_keys/validator-1.priv /etc/sawtooth/keys/validator.priv \
         && cp /poet_keys/validator-1.pub /etc/sawtooth/keys/validator.pub \
         && cat /etc/sawtooth/keys/validator.pub \
-        && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         --config /project/sawtooth-poet/core/src/resources/poet_config.toml \
         -C tcp://validator-1:5050 -vv --genesis /poet_keys/poet-config.batch\""
@@ -199,7 +177,6 @@ services:
         && cp /poet_keys/validator-2.priv /etc/sawtooth/keys/validator.priv \
         && cp /poet_keys/validator-2.pub /etc/sawtooth/keys/validator.pub \
         && cat /etc/sawtooth/keys/validator.pub \
-        && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         --config /project/sawtooth-poet/core/src/resources/poet_config.toml \
         -C tcp://validator-2:5050 -vv \""
@@ -231,7 +208,6 @@ services:
         && cp /poet_keys/validator-3.priv /etc/sawtooth/keys/validator.priv \
         && cp /poet_keys/validator-3.pub /etc/sawtooth/keys/validator.pub \
         && cat /etc/sawtooth/keys/validator.pub \
-        && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         --config /project/sawtooth-poet/core/src/resources/poet_config.toml \
         -C tcp://validator-3:5050 -vv \""
@@ -301,7 +277,7 @@ services:
     image: sawtooth-poet-validator-registry-tp:latest
     build:
       context: ./
-      dockerfile: ../rust-installed.dockerfile
+      dockerfile: ../../validator-registry-tp/Dockerfile
       args:
         - http_proxy
         - https_proxy
@@ -327,7 +303,7 @@ services:
     image: sawtooth-poet-validator-registry-tp:latest
     build:
       context: ./
-      dockerfile: ../rust-installed.dockerfile
+      dockerfile: ../../validator-registry-tp/Dockerfile
       args:
         - http_proxy
         - https_proxy
@@ -353,7 +329,7 @@ services:
     image: sawtooth-poet-validator-registry-tp:latest
     build:
       context: ./
-      dockerfile: ../rust-installed.dockerfile
+      dockerfile: ../../validator-registry-tp/Dockerfile
       args:
         - http_proxy
         - https_proxy
