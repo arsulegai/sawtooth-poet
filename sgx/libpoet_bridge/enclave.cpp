@@ -631,7 +631,8 @@ namespace sawtooth {
         // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         void Enclave::LoadEnclave()
         {
-            if (!this->enclaveId) {
+         	printf("LOAD ENCLAVE\n");
+		if (!this->enclaveId) {
                 /* Enclave id, used in communicating with enclave */
                 Enclave::QuerySgxStatus();
 
@@ -653,8 +654,8 @@ namespace sawtooth {
                     10, // retries
                     250 // retryWaitMs
                     );
-                ThrowSgxError(ret, "Unable to create enclave.");
-
+		        ThrowSgxError(ret, "Unable to create enclave.");
+		
                 // Initialize the enclave
                 poet_err_t poetError = POET_SUCCESS;
                 Log(POET_LOG_INFO, "ecall_Initialize");
@@ -685,18 +686,18 @@ namespace sawtooth {
             bool retry = true;
             do {
                 ret = fxn();
-                if (SGX_ERROR_ENCLAVE_LOST == ret) {
+		        if (SGX_ERROR_ENCLAVE_LOST == ret) {
                     // Enclave lost, potentially due to power state change
                     // reload the enclave and try again
-                    this->Unload();
+            this->Unload();
                     this->LoadEnclave();
                 } else if (SGX_ERROR_DEVICE_BUSY == ret) {
                     // Device is busy... wait and try again.
-                    Sleep(retryDelayMs);
+		            Sleep(retryDelayMs);
                     count++;
                     retry = count <= retries;
                 } else {
-                    // Not an error code we need to handle here,
+		            // Not an error code we need to handle here,
                     // exit the loop and let the calling function handle it.
                     retry = false;
                 }
