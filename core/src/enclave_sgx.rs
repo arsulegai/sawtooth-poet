@@ -39,8 +39,8 @@ use std::path::PathBuf;
 use std::ptr;
 use std::str;
 use std::string::String;
-use validator_registry_tp::validator_registry_signup_info::{
-    SignupInfoProofData, ValidatorRegistrySignupInfo,
+use protos::validator_registry::{
+    SignupInfoProof, SignupInfo,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -156,7 +156,7 @@ impl EnclaveConfig {
         &mut self,
         pub_key_hash: &str,
         config: &PoetConfig,
-    ) -> ValidatorRegistrySignupInfo {
+    ) -> SignupInfo {
         // Update SigRL before getting quote
         self.update_sig_rl();
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
@@ -193,7 +193,7 @@ impl EnclaveConfig {
                 .to_str()
                 .expect("Error reading IAS signature header value as string")
                 .to_string();
-            let proof_data_struct = SignupInfoProofData {
+            let proof_data_struct = SignupInfoProof {
                 verification_report,
                 signature,
             };
@@ -220,7 +220,7 @@ impl EnclaveConfig {
                 .expect("Error reading EPID pseudonym as string")
                 .to_string();
         }
-        ValidatorRegistrySignupInfo::new(
+        SignupInfo::new(
             poet_public_key,
             proof_data_string,
             epid_pseudonym,
@@ -368,7 +368,7 @@ impl EnclaveConfig {
 /// along with other checks for presence of id, epid pseudonym, revocation reason, ISV enclave
 /// quote, nonce.
 fn check_verification_report(
-    proof_data: &SignupInfoProofData,
+    proof_data: &SignupInfoProof,
     config: &PoetConfig,
 ) -> Result<(), ()> {
     let verification_report = &proof_data.verification_report;
