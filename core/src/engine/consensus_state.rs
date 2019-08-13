@@ -22,7 +22,7 @@ use sawtooth_sdk::consensus::engine::*;
 use service::Poet2Service;
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use validator_registry_tp::validator_registry_validator_info::ValidatorRegistryValidatorInfo;
+use protos::validator_registry::ValidatorInfo;
 use validator_registry_view;
 
 /*
@@ -93,7 +93,7 @@ pub struct ConsensusState {
 #[derive(Clone, Debug, Default)]
 struct BlockInfo {
     wait_certificate: Option<String>,
-    validator_info: Option<ValidatorRegistryValidatorInfo>,
+    validator_info: Option<ValidatorInfo>,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -282,8 +282,8 @@ impl ConsensusState {
 
     pub fn validator_did_claim_block(
         &mut self,
-        _validator_info: &ValidatorRegistryValidatorInfo,
-        _wait_certificate: &String,
+        validator_info: &ValidatorInfo,
+        wait_certificate: &str,
     ) -> () {
         //self.aggregate_local_mean += 5.5_f64; //wait_certificate.local_mean;
         self.total_block_claim_count += 1;
@@ -296,20 +296,21 @@ impl ConsensusState {
         // }
 
         // Get the current validator state
-        let validator_state = self.get_validator_state(_validator_info.clone());
+        let validator_state = self.get_validator_state(validator_info.clone());
         let total_block_claim_count = validator_state.total_block_claim_count + 1;
         let key_block_claim_count =
-            if _validator_info.signup_info.poet_public_key == validator_state.poet_public_key {
+            if validator_info.get_signup_info().get_poet_public_key()
+                == validator_state.poet_public_key {
                 validator_state.key_block_claim_count + 1
             } else {
                 1
             };
-        let peerid_str = _validator_info.clone().id;
+        let peerid_str = validator_info.clone().id;
         self.validators.insert(
             peerid_str,
             ValidatorState {
                 key_block_claim_count: key_block_claim_count,
-                poet_public_key: _validator_info.signup_info.poet_public_key.clone(),
+                poet_public_key: validator_info.get_signup_info().get_poet_public_key().to_string(),
                 total_block_claim_count: total_block_claim_count,
             },
         );
@@ -317,13 +318,13 @@ impl ConsensusState {
 
     pub fn get_validator_state(
         &mut self,
-        validator_info: ValidatorRegistryValidatorInfo,
+        validator_info: ValidatorInfo,
     ) -> Box<ValidatorState> {
         let peerid_str = validator_info.clone().id;
         let validator_state = self.validators.get(&peerid_str);
         let val_state = ValidatorState {
             key_block_claim_count: 0,
-            poet_public_key: validator_info.signup_info.poet_public_key.clone(),
+            poet_public_key: validator_info.get_signup_info().get_poet_public_key().to_string(),
             total_block_claim_count: 0,
         };
         if validator_state.is_none() {

@@ -13,7 +13,7 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-version: '3.6'
+version: '3.5'
 
 volumes:
   cargo-registry:
@@ -30,7 +30,7 @@ services:
       - 5050
     volumes:
       - poet-share:/poet_keys
-      - ../../core/resources:/config
+      - ../../core/src/resources:/config
     # start the validator with an empty genesis batch
     working_dir: /root
     command: "bash -c \"\
@@ -75,12 +75,8 @@ services:
       - cargo-registry:/root/.cargo/registry
       - poet-share:/poet_keys
     working_dir: '/project/sawtooth-poet/core'
-    environment:
-      - 'http_proxy=${http_proxy}'
-      - 'https_proxy=${https_proxy}'
-      - 'no_proxy=${no_proxy},validator-1,rest-api-1'
-    devices:
-      - "/dev/isgx:/dev/isgx"
+    #    devices:
+#      - "/dev/isgx:/dev/isgx"
     depends_on:
       - validator-1
       - validator-registry-tp-1
@@ -94,7 +90,8 @@ services:
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- \
         -C tcp://validator-1:5050 \
         --config /project/sawtooth-poet/core/src/resources/poet_config.toml \
-        -v --genesis /poet_keys/poet-config.batch \""
+        -vvvv --genesis /poet_keys/poet-config.batch ;\
+        tail -f /dev/null \""
     stop_signal: SIGKILL
 
   rest-api-1:
@@ -128,27 +125,26 @@ services:
         \""
 
   validator-registry-tp-1:
-    image: sawtooth-poet-validator-registry-tp:latest
+    image: sawtooth-poet-sawtooth_validator_registry:latest
     build:
       context: ./
-      dockerfile: ../../validator-registry-tp/Dockerfile
+      dockerfile: ../../families/Dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ../../validator-registry-tp:/project/validator-registry-tp/
+      - ../../:/project
       - cargo-registry-tp:/root/.cargo/registry
-    working_dir: '/project/validator-registry-tp'
+    working_dir: '/project/families/sawtooth_validator_registry/validator_registry'
     environment:
       - 'http_proxy=${http_proxy}'
       - 'https_proxy=${https_proxy}'
       - 'no_proxy=${no_proxy},validator-1'
-      - 'SGX_HW_MODE=TRUE'
     depends_on:
       - validator-1
     entrypoint: "bash -c \"\
-        RUST_BACKTRACE=1 cargo run --bin validator-registry-tp -- -vv -C \
+        RUST_BACKTRACE=1 cargo run --bin poet-validator-registry-tp -- -vvv -C \
         tcp://validator-1:4004 && \
          tail -f /dev/null \
         \""

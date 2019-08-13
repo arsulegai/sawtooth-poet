@@ -39,8 +39,8 @@ use std::path::PathBuf;
 use std::ptr;
 use std::str;
 use std::string::String;
-use validator_registry_tp::validator_registry_signup_info::{
-    SignupInfoProofData, ValidatorRegistrySignupInfo,
+use protos::validator_registry::{
+    SignUpInfoProof, SignUpInfo,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -74,6 +74,7 @@ impl From<&Block> for WaitCertificate {
         serde_json::from_str(&wait_certificate).unwrap()
     }
 }
+
 #[derive(Clone)]
 pub struct EnclaveConfig {
     pub enclave_id: r_sgx_enclave_id_t,
@@ -159,27 +160,19 @@ impl EnclaveConfig {
     /// Initialization if running on SGX hardware. Fill up IAS client object parameters from
     /// config file.
     pub fn initialize_remote_attestation(&mut self, config: &PoetConfig) {
-        if !config.is_simulator_mode(){
-            info!("REMOTE ATTESTATION");
-            self.ias_client.set_ias_url(config.get_ias_url());
-            self.ias_client.set_ias_subscription_key(config.get_ias_subscription_key());
-            
-           // self.ias_client
-             //   .set_spid_cert(read_binary_file(config.get_spid_cert_file().as_str()));
-            //self.ias_client.set_password(config.get_password());
-            self.update_sig_rl();
-        }
+        info!("REMOTE ATTESTATION");
+        self.ias_client.set_ias_url(config.get_ias_url());
+        self.ias_client.set_ias_subscription_key(config.get_ias_subscription_key());
+        self.update_sig_rl();
     }
 
     pub fn create_signup_info(
         &mut self,
         pub_key_hash: &str,
         config: &PoetConfig,
-    ) -> ValidatorRegistrySignupInfo {
-        // Update SigRL before getting quote  -> Already updated during remote attestation
-        // if !config.is_simulator_mode(){
-        //     self.update_sig_rl();
-        // }
+    ) -> SignUpInfo {
+        // Update SigRL before getting quote
+        self.update_sig_rl();
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
         let mut signup: r_sgx_signup_info_t = self.signup_info;
         info!("creating signup_info");
@@ -192,61 +185,56 @@ impl EnclaveConfig {
         self.signup_info.poet_public_key_len = signup.poet_public_key_len;
         self.signup_info.enclave_quote = signup.enclave_quote;
 
-        let (poet_public_key, quote) = self.get_signup_parameters();
+        let (poet_public_key, quote, _, _) = self.get_signup_parameters();
         let nonce = &sha512_from_str(poet_public_key.as_str())[..MAXIMUM_NONCE_LENGTH];
-        let mut proof_data_string = String::new();
+        let mut proof_data_struct = SignUpInfoProof::new();
         // TODO: Using poet_public_key as a random string for each registration request, this has
         // to be replaced by anti_sybil_id from AVR. Waiting for mock client for simulator be
         // ready.
-        let mut epid_pseudonym = poet_public_key.clone();
-        if !config.is_simulator_mode() {
-            let raw_response = self
-                .ias_client
-                .post_verify_attestation(quote.as_ref(), None, Option::from(nonce))
-                .expect("Error getting AVR");
-            // Response body is the AVR or Verification Report
-            let verification_report =
-                read_body_as_string(raw_response.body).expect("Error reading the response body");
-            let signature = raw_response
-                .header_map
-                .get(IAS_REPORT_SIGNATURE)
-                .expect("Error reading IAS signature in response")
-                .to_str()
-                .expect("Error reading IAS signature header value as string")
-                .to_string();
-            let proof_data_struct = SignupInfoProofData {
-                verification_report,
-                signature,
-            };
+        info!("{:?}", quote.clone());
+        let raw_response = self
+            .ias_client
+            .post_verify_attestation(&quote, None, Option::from(nonce), Some(pub_key_hash))
+            .expect("Error getting AVR");
+        // Response body is the AVR or Verification Report
+        let verification_report =
+            read_body_as_string(raw_response.body).expect("Error reading the response body");
+        let signature = raw_response
+            .header_map
+            .get(IAS_REPORT_SIGNATURE)
+            .expect("Error reading IAS signature in response")
+            .to_str()
+            .expect("Error reading IAS signature header value as string")
+            .to_string();
 
-            // Verify AVR
-            check_verification_report(&proof_data_struct, config)
-                .expect("Invalid attestation report");
-            debug!("Verification successful!");
+        proof_data_struct.set_verification_report(verification_report);
+        proof_data_struct.set_signature(signature);
 
-            proof_data_string = serde_json::to_string(&proof_data_struct)
-                .expect("Error serializing structure to string");
+        // Verify AVR
+        check_verification_report(&proof_data_struct, config)
+            .expect("Invalid attestation report");
+        debug!("Verification successful!");
 
-            // Fill up signup information from AVR
-            let verification_report_tmp_dict: Value =
-                from_str(proof_data_struct.verification_report.as_str())
-                    .expect("Error deserializing verification report");
-            let verification_report_dict = verification_report_tmp_dict
-                .as_object()
-                .expect("Error reading verification report as hashmap");
-            epid_pseudonym = verification_report_dict
-                .get("epidPseudonym")
-                .expect("No EPID Pseudonym in AVR")
-                .as_str()
-                .expect("Error reading EPID pseudonym as string")
-                .to_string();
-        }
-        ValidatorRegistrySignupInfo::new(
-            poet_public_key,
-            proof_data_string,
-            epid_pseudonym,
-            nonce.to_string(),
-        )
+        // Fill up signup information from AVR
+        let verification_report_tmp_dict: Value =
+            from_str(proof_data_struct.verification_report.as_str())
+                .expect("Error deserializing verification report");
+        let verification_report_dict = verification_report_tmp_dict
+            .as_object()
+            .expect("Error reading verification report as hashmap");
+        let epid_pseudonym = verification_report_dict
+            .get("epidPseudonym")
+            .expect("No EPID Pseudonym in AVR")
+            .as_str()
+            .expect("Error reading EPID pseudonym as string")
+            .to_string();
+
+        let mut signup_info = SignUpInfo::new();
+        signup_info.set_poet_public_key(poet_public_key);
+        signup_info.set_proof_data(proof_data_struct);
+        signup_info.set_anti_sybil_id(epid_pseudonym);
+        signup_info.set_nonce(nonce.to_string());
+        signup_info
     }
 
     pub fn initialize_wait_certificate(
@@ -338,19 +326,6 @@ impl EnclaveConfig {
         verify_wait_cert_status
     }
 
-    /// Returns boolean, information if POET is run in hardware or simulator mode.
-    pub fn check_if_sgx_simulator(&mut self) -> bool {
-        // let mut eid: r_sgx_enclave_id_t = self.enclave_id;
-        // let mut sgx_simulator: bool = false;
-        // ffi::is_sgx_simulator(&mut eid, &mut sgx_simulator).expect("Failed to check SGX simulator");
-        // debug!(
-        //     "is_sgx_simulator ? {:?}",
-        //     if sgx_simulator { "Yes" } else { "No" }
-        // );
-        // sgx_simulator
-        return true;
-    }
-
     pub fn set_sig_revocation_list(&mut self, sig_rev_list: &str) {
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
         ffi::set_sig_revocation_list(&mut eid, sig_rev_list)
@@ -358,13 +333,18 @@ impl EnclaveConfig {
         debug!("Signature revocation list has been updated");
     }
 
-    pub fn get_signup_parameters(&mut self) -> (String, String) {
+    pub fn get_signup_parameters(&mut self) -> (String, String, String, String) {
         let signup_data: r_sgx_signup_info_t = self.signup_info;
         let poet_pub_key =
             unsafe { ffi::create_string_from_char_ptr(signup_data.poet_public_key as *mut c_char) };
         let enclave_quote =
             unsafe { ffi::create_string_from_char_ptr(signup_data.enclave_quote as *mut c_char) };
-        (poet_pub_key, enclave_quote)
+        let enclave_id: r_sgx_enclave_id_t = self.enclave_id;
+        let mr_enclave =
+            unsafe { ffi::create_string_from_char_ptr(enclave_id.mr_enclave as *mut c_char) };
+        let basename =
+            unsafe { ffi::create_string_from_char_ptr(enclave_id.basename as *mut c_char) };
+        (poet_pub_key, enclave_quote, mr_enclave, basename)
     }
 
     /// Method to update signature revocation list received from IAS. Pass it to enclave. Note
@@ -389,7 +369,7 @@ impl EnclaveConfig {
 /// along with other checks for presence of id, epid pseudonym, revocation reason, ISV enclave
 /// quote, nonce.
 fn check_verification_report(
-    proof_data: &SignupInfoProofData,
+    proof_data: &SignUpInfoProof,
     config: &PoetConfig,
 ) -> Result<(), ()> {
     let verification_report = &proof_data.verification_report;
@@ -454,7 +434,7 @@ fn check_verification_report(
     }
     // 6. Includes an EPID psuedonym.
     if !verification_report_dict.contains_key("epidPseudonym") {
-        error!("AVR does not contain an EPID psuedonym");
+        error!("AVR does not contain an EPID pseudonym");
         return Err(());
     }
     // 7. Includes a nonce

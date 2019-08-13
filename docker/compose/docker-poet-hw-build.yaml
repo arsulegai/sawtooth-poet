@@ -38,16 +38,12 @@ services:
  validator-registry-tp:
      build:
        context: .
-       dockerfile: ../../validator-registry-tp/Dockerfile
-       args:
-         - http_proxy
-         - https_proxy
-         - no_proxy
+       dockerfile: ../../families/Dockerfile
      volumes:
-       - ../../validator-registry-tp:/project/sawtooth-poet/validator-registry-tp/
+       - ../../:/project/
      environment:
        - 'SGX_HW_MODE=TRUE'
-     working_dir: '/project/sawtooth-poet/validator-registry-tp'
+     working_dir: '/project/families/sawtooth_validator_registry/validator_registry'
      entrypoint: "bash -c \"\
          RUST_BACKTRACE=1 cargo build\""
      stop_signal: SIGKILL
