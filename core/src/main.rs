@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ extern crate serde_json;
 extern crate sgxffi;
 extern crate toml;
 extern crate zmq;
+extern crate sawtooth_sdk;
+extern crate sawtooth_sdk;
 
 use engine::Poet2Engine;
 use log::LevelFilter;
@@ -62,6 +64,7 @@ mod registration;
 pub mod service;
 pub mod settings_view;
 mod validator_registry_view;
+mod enclave;
 
 /*
  *
