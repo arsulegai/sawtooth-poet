@@ -21,7 +21,6 @@ use poet2_util::{
     read_file_as_string_ignore_line_end, sha256_from_str, write_binary_file, sha512_of_bytearray,
     to_hex_string, sha256_from_bytes,
 };
-use poet_config::PoetConfig;
 use protobuf::{Message, RepeatedField};
 use sawtooth_sdk::{
     messages::{
@@ -39,7 +38,10 @@ use protos::{
         SettingProposal, SettingsPayload, SettingsPayload_Action,
     }
 };
+use common::utils::read_file_as_string_ignore_line_end;
 use rand::Rng;
+use clap::ArgMatches;
+use cli_error::CliError;
 
 const SETTING_ADDRESS_PART_SIZE: usize = 16;
 const VALIDATOR_REGISTRY: &str = "validator_registry";
@@ -50,47 +52,62 @@ const REGISTER_ACTION: &str = "register";
 const VALIDATOR_NAME_PREFIX: &str = "validator-";
 const NAMESPACE_ADDRESS_LENGTH: usize = 6;
 const MAX_SETTINGS_PARTS: usize = 4;
-const SETTINGS_PART_LENGTH: usize = 16;
 const CONFIGSPACE_NAMESPACE: &str = "000000";
 const PUBLIC_KEY_IDENTIFIER_LENGTH: usize = 8;
-const DEFAULT_POET_CLIENT_PRIVATE_KEY: &str = "/etc/sawtooth/keys/validator.priv";
 const APPLICATION_OCTET_STREAM: &str = "application/octet-stream";
 const SETTING_KEY_SEPARATOR: &str = ".";
 const EMPTY_STR: &str = "";
 const SAWTOOTH_POET_VALID_MEASUREMENTS: &str = "sawtooth.poet.valid_enclave_measurements";
 const SAWTOOTH_POET_VALID_BASENAMES: &str = "sawtooth.poet.valid_enclave_basenames";
-const SAWTOOTH_SETTINGS_VOTE_PROPOSALS: &str = "sawtooth.settings.vote.proposals";
-const SAWTOOTH_SETTINGS_VOTE_AUTHORIZED_KEYS: &str = "sawtooth.settings.vote.authorized_keys";
-const SAWTOOTH_SETTINGS_VOTE_APPROVAL_THRESHOLD: &str = "sawtooth.settings.vote.approval_threshold";
+const SAWTOOTH_IAS_REPORT_PUBLIC_KEY: &str = "sawtooth.poet.report_public_key_pem";
 
-/// Function to compose a registration request and send it to validator over REST API (for non
-/// genesis node) or store in a batch file in case of genesis node.
-/// Accepts validator private key, signup information (AVR or the quote), block_id which can be
-/// used as nonce (there's registration after every K blocks, which needs to send new nonce).
-///
-/// Returns response from validator REST API as string.
-pub fn do_create_registration(
-    config: &PoetConfig,
-    nonce: &str,
-    signup_info: SignUpInfo,
-    mr_enclave: String,
-    basename: String,
-) -> BatchList {
-    // Read private key from default path if it's not given as input in config
-    let mut key_file = config.get_poet_client_private_key_file();
-    if key_file.is_empty() {
-        key_file = DEFAULT_POET_CLIENT_PRIVATE_KEY.to_string();
+pub fn do_registration(
+    mathces: &ArgMatches,
+    enclave: &str,
+) -> Result<(), CliError> {
+    let url = matches.value_of("url");
+    match matches.subcommand_matches("create") {
+        Some(matches) => {
+            // Default key location is already set, so always expect a key file here
+            let key = matches.value_of("key").expect("Key file path corrupted");
+            // Output field must be used only if url is not specified. Default value is already
+            // set in the main handler. So always expect a value here.
+            let output = matches.value_of("ouput").expect("Ouput file name is corrupted");
+
+            let reg_bytes = create_registration(key);
+            let bytes = match reg_bytes {
+                Ok(bytes) => bytes,
+                Err(err) => return Err(err),
+            };
+            match url {
+                Some(u) => send_registration(bytes, u),
+                None => store_registration(bytes, output),
+            }
+        },
+        None => {
+            return Err(CliError::from("Invalid command, please refer to the help"));
+        }
     }
-    let read_key = read_file_as_string_ignore_line_end(key_file.as_str());
+    return Ok(())
+}
 
-    let private_key: Box<PrivateKey> =
-        Box::new(Secp256k1PrivateKey::from_hex(read_key.as_str()).expect("Invalid private key"));
+/// Function to read the key file and create a signer instance
+fn read_key_and_get_signer(
+    key_file: &str,
+) -> Signer {
+    // Read the private key file to create the registration batch
+    let read_key = read_file_as_string_ignore_line_end(key_file.as_str());
+    let private_key: Box<PrivateKey> = Box::new(Secp256k1PrivateKey::from_hex(read_key.as_str()).expect("Invalid private key"));
     let context = create_context(CONTEXT_ALGORITHM_NAME).expect("Unsupported algorithm");
     let signer = Signer::new(context.as_ref(), private_key.as_ref());
-    // get signer and public key from signer in hex
-    let public_key = signer.get_public_key().expect("Public key not found");
+    return signer;
+}
 
-    // Construct payload and serialize it
+/// Function to construct the payload
+fn construct_payload(
+    public_key: &PublicKey,
+    signup_info: SignUpInfo,
+) -> Vec<u8> {
     let verb = REGISTER_ACTION.to_string();
     let mut name = String::new();
     name.push_str(VALIDATOR_NAME_PREFIX);
@@ -104,6 +121,23 @@ pub fn do_create_registration(
     raw_payload.set_id(id);
     raw_payload.set_signup_info(signup_info);
     let payload = raw_payload.write_to_bytes().expect("Error serializing the payload");
+    payload
+}
+
+/// Function to compose a registration request and send it to validator over REST API (for non
+/// genesis node) or store in a batch file in case of genesis node.
+/// Accepts validator private key, signup information (AVR or the quote), block_id which can be
+/// used as nonce (there's registration after every K blocks, which needs to send new nonce).
+///
+/// Returns response from validator REST API as string.
+pub fn create_registration(
+    key_file: &str,
+) -> BatchList {
+    let signer = read_key_and_get_signer(key_file);
+    // get signer and public key from signer in hex
+    let public_key = signer.get_public_key().expect("Public key not found");
+    // Construct payload
+    let payload = construct_payload(&public_key);
 
     // Namespace for the TP
     let vr_namespace = &sha256_from_str(VALIDATOR_REGISTRY)[..NAMESPACE_ADDRESS_LENGTH];
@@ -125,14 +159,10 @@ pub fn do_create_registration(
     let input_addresses = [
         vr_entry_address,
         vr_map_address,
-        get_address_for_setting("sawtooth.poet.report_public_key_pem"),
+        get_address_for_setting(SAWTOOTH_IAS_REPORT_PUBLIC_KEY),
         get_address_for_setting(SAWTOOTH_POET_VALID_MEASUREMENTS),
         get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES),
     ];
-
-    warn!("Input addresses are {} and {}",
-        get_address_for_setting(SAWTOOTH_POET_VALID_MEASUREMENTS),
-        get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES));
 
     // Create transaction header
     let transaction_header = create_transaction_header(
@@ -144,89 +174,20 @@ pub fn do_create_registration(
     );
 
     // Create transaction
-    let transaction = create_transaction(&signer, &transaction_header, payload);
-
-    let created_mr_enclave_batch = create_mr_enclave(&signer, &public_key, mr_enclave);
-    let created_basename_batch = create_basename(&signer, &public_key, basename);
+    let transaction = create_transaction(
+        &signer,
+        &transaction_header,
+        payload
+    );
 
     // Create batch header, batch
-    let batch = create_batch(&signer, transaction);
+    let batch = create_batch(
+        &signer,
+        transaction
+    );
 
     // Create batch list
-    create_batch_list(vec![created_mr_enclave_batch, created_basename_batch, batch])
-}
-
-/// Temporary functions to create settings transactions for enclave measuremenrs and the basename
-fn create_mr_enclave(signer: &Signer, public_key: &Box<PublicKey>, mr_enclave: String) -> Batch {
-    let address = get_address_for_setting(SAWTOOTH_POET_VALID_MEASUREMENTS);
-    let other_address1 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_PROPOSALS);
-    let other_address2 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_AUTHORIZED_KEYS);
-    let other_address3 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_APPROVAL_THRESHOLD);
-    let input_addresses = [address.clone(), other_address1.clone(), other_address2.clone(), other_address3.clone()];
-    let ouput_addresses = [address, other_address2, other_address1, other_address3];
-    let nonce_bytes = rand::thread_rng().gen_iter::<u8>().take(64).collect::<Vec<u8>>();
-    let nonce = to_hex_string(&nonce_bytes);
-    let mut raw_payload = SettingProposal::new();
-    raw_payload.set_setting(SAWTOOTH_POET_VALID_MEASUREMENTS.to_string());
-    raw_payload.set_value(mr_enclave);
-    raw_payload.set_nonce(nonce.clone());
-    let proposal = raw_payload.write_to_bytes().expect("Error serializing the payload");
-    let mut raw_pay = SettingsPayload::new();
-    raw_pay.set_action(SettingsPayload_Action::PROPOSE);
-    raw_pay.set_data(proposal.clone());
-    let payload = raw_pay.write_to_bytes().expect("Error serializing the payload");
-
-    let transaction_header = create_transaction_header_settings(
-        &input_addresses,
-        &ouput_addresses,
-        &payload,
-        public_key,
-        nonce,
-    );
-
-    let transaction = create_transaction(
-        signer,
-        &transaction_header,
-        payload,
-    );
-
-    create_batch(signer, transaction)
-}
-
-fn create_basename(signer: &Signer, public_key: &Box<PublicKey>, basename: String) -> Batch {
-    let address = get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES);
-    let other_address1 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_PROPOSALS);
-    let other_address2 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_AUTHORIZED_KEYS);
-    let other_address3 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_APPROVAL_THRESHOLD);
-    let input_addresses = [address.clone(), other_address1.clone(), other_address2.clone(), other_address3.clone()];
-    let ouput_addresses = [address, other_address2, other_address1, other_address3];
-    let nonce_bytes = rand::thread_rng().gen_iter::<u8>().take(64).collect::<Vec<u8>>();
-    let nonce = to_hex_string(&nonce_bytes);
-    let mut raw_payload = SettingProposal::new();
-    raw_payload.set_setting(SAWTOOTH_POET_VALID_BASENAMES.to_string());
-    raw_payload.set_value(basename);
-    raw_payload.set_nonce(nonce.clone());
-    let proposal = raw_payload.write_to_bytes().expect("Error serializing the payload");
-    let mut raw_pay = SettingsPayload::new();
-    raw_pay.set_action(SettingsPayload_Action::PROPOSE);
-    raw_pay.set_data(proposal.clone());
-    let payload = raw_pay.write_to_bytes().expect("Error serializing the payload");
-
-    let transaction_header = create_transaction_header_settings(
-        &input_addresses,
-        &ouput_addresses,
-        &payload,
-        public_key,
-        nonce,
-    );
-
-    let transaction = create_transaction(
-        signer,
-        &transaction_header,
-        payload,
-    );
-
-    create_batch(signer, transaction)
+    create_batch_list(vec![batch])
 }
 
 /// Function to create the ```BatchList``` object, which later is serialized and sent to REST API

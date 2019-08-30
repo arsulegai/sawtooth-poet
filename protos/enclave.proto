@@ -18,30 +18,128 @@ syntax = "proto3";
 option java_multiple_files = true;
 option java_package = "sawtooth.config.protobuf";
 
-// The message sent from or to the enclave, can be extended later. Has the
-// content at present.
-message EnclaveMessage {
-    // The opaque payload to send to the enclave
-    bytes content = 1;
+message Message {
+    enum MessageType {
+        ENCLAVE_INITIALIZE_WAIT_CERTIFICATE_REQUEST = 0;
+        ENCLAVE_INITIALIZE_WAIT_CERTIFICATE_RESPONSE = 1;
+        ENCLAVE_FINALIZE_WAIT_CERTIFICATE_REQUEST = 2;
+        ENCLAVE_FINALIZE_WAIT_CERTIFICATE_RESPONSE = 3;
+        ENCLAVE_VERIFY_WAIT_CERTIFICATE_REQUEST = 4;
+        ENCLAVE_VERIFY_WAIT_CERTIFICATE_RESPONSE = 5;
+        ENCLAVE_RELEASE_WAIT_CERTIFICATE_REQUEST = 6;
+        ENCLAVE_RELEASE_WAIT_CERTIFICATE_RESPONSE = 7;
+        ENCLAVE_INITIALIZE_REQUEST = 100;
+        ENCLAVE_INITIALIZE_RESPONSE = 101;
+        ENCLAVE_SET_SIG_RL_REQUEST = 102;
+        ENCLAVE_SET_SIG_RL_RESPONSE = 103;
+        ENCLAVE_CREATE_SIGNUPINFO_REQUEST = 104;
+        ENCLAVE_CREATE_SIGNUPINFO_RESPONSE = 105;
+    }
 }
 
-// The following services are used by either the engine or the CLI.
-message EnclaveSendToRequest {
-    // Payload to send to the enclave service
-    //
-    // NOTE: The payload is a wrapped in a EnclaveMessage struct,
-    // it is decoded based on the type.
-    bytes content = 1;
-    bytes receiver_id = 2;
-    string message_type = 3;
+message SgxWaitCertificate {
 }
 
-message EnclaveSendToResponse {
+message SignUpInfo {
+}
+
+message EnclaveInitializeRequest {
+}
+
+message EnclaveInitializeResponse {
     enum Status {
         STATUS_UNSET = 0;
         OK = 1;
         ERROR = 2;
     }
+    Status status = 1;
+}
 
+message EnclaveSetSigRlRequest {
+    string sigrl = 1;
+}
+
+message EnclaveSetSigRlResponse {
+    enum Status {
+        STATUS_UNSET = 0;
+        OK = 1;
+        ERROR = 2;
+    }
+    Status status = 1;
+}
+
+message EnclaveCreateSignUpInfoRequest {
+}
+
+message EnclaveCreateSignUpInfoResponse {
+    enum Status {
+        STATUS_UNSET = 0;
+        OK = 1;
+        ERROR = 2;
+    }
+    Status status = 1;
+    SignUpInfo signup_info = 2;
+}
+
+message EnclaveInitializeWaitCertificateRequest {
+    string prev_wait_cert = 1;
+    string prev_wait_cert_sig = 2;
+    string validator_id = 3;
+    string poet_pub_key = 4;
+}
+
+message EnclaveInitializeWaitCertificateResponse {
+    enum Status {
+        STATUS_UNSET = 0;
+        OK = 1;
+        ERROR = 2;
+    }
+    Status status = 1;
+    uint64 duration = 2;
+}
+
+message EnclaveFinalizeWaitCertificateRequest {
+    string prev_wait_cert = 1;
+    string prev_wait_cert_sig = 2;
+    string prev_block_id = 3;
+    string block_summary = 4;
+    uint64 wait_time = 5;
+}
+
+message EnclaveFinalizeWaitCertificateResponse {
+    enum Status {
+        STATUS_UNSET = 0;
+        OK = 1;
+        ERROR = 2;
+    }
+    Status status = 1;
+    SgxWaitCertificate sgx_wait_certificate = 2;
+}
+
+message EnclaveVerifyWaitCertificateRequest {
+    string wait_cert = 1;
+    string wait_cert_sig = 2;
+    string poet_pub_key = 3;
+}
+
+message EnclaveVerifyWaitCertificateResponse {
+    enum Status {
+        STATUS_UNSET = 0;
+        OK = 1;
+        ERROR = 2;
+    }
+    Status status = 1;
+}
+
+message EnclaveReleaseWaitCertificateRequest {
+    string wait_cert = 1;
+}
+
+message EnclaveReleaseWaitCertificateResponse {
+    enum Status {
+        STATUS_UNSET = 0;
+        OK = 1;
+        ERROR = 2;
+    }
     Status status = 1;
 }

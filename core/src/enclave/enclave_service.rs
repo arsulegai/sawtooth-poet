@@ -16,12 +16,14 @@
  */
 
 use enclave::enclave_error::Error;
+use protos::enclave::SgxWaitCertificate;
 
 pub trait EnclaveService {
     // Calls from Engine to the Enclave
 
     /// Initialize Wait Certificate
     fn initialize_wait_certificate(
+        &mut self,
         prev_wait_cert: &str,
         prev_wait_cert_sig: &str,
         validator_id: &str,
@@ -30,6 +32,7 @@ pub trait EnclaveService {
 
     /// Finalize Wait Certificate
     fn finalize_wait_certificate(
+        &mut self,
         prev_wait_cert: &str,
         prev_wait_cert_sig: &str,
         prev_block_id: &str,
@@ -39,6 +42,7 @@ pub trait EnclaveService {
 
     /// Verify the wait certificate in serialized form
     fn verify_wait_certificate(
+        &mut self,
         wait_cert: &str,
         wait_cert_sign: &str,
         poet_pub_key: &str,
@@ -46,6 +50,7 @@ pub trait EnclaveService {
 
     /// Release the wait certificate
     fn release_wait_certificate(
+        &mut self,
         wait_cert: &str,
     ) -> Result<bool, Error>;
 }

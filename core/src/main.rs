@@ -38,8 +38,6 @@ extern crate serde_json;
 extern crate sgxffi;
 extern crate toml;
 extern crate zmq;
-extern crate sawtooth_sdk;
-extern crate sawtooth_sdk;
 
 use engine::Poet2Engine;
 use log::LevelFilter;
@@ -60,7 +58,6 @@ pub mod enclave_sgx;
 pub mod engine;
 pub mod poet2_util;
 mod poet_config;
-mod registration;
 pub mod service;
 pub mod settings_view;
 mod validator_registry_view;

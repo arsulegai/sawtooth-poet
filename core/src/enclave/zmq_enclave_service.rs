@@ -21,9 +21,25 @@ use protobuf;
 use rand::Rng;
 
 use enclave::enclave_error::Error;
-use sawtooth_sdk::messaging::stream::MessageSender;
-use sawtooth_sdk::messaging::zmq_stream::ZmqMessageSender;
+use common::messaging::stream::MessageSender;
+use common::messaging::zmq_stream::ZmqMessageSender;
 use enclave::enclave_service::EnclaveService;
+use protos::enclave::Message_MessageType;
+use protos::enclave::{
+    SgxWaitCertificate,
+    EnclaveInitializeWaitCertificateRequest,
+    EnclaveFinalizeWaitCertificateRequest,
+    EnclaveVerifyWaitCertificateRequest,
+    EnclaveReleaseWaitCertificateRequest,
+    EnclaveInitializeWaitCertificateResponse,
+    EnclaveFinalizeWaitCertificateResponse,
+    EnclaveVerifyWaitCertificateResponse,
+    EnclaveReleaseWaitCertificateResponse,
+    EnclaveInitializeWaitCertificateResponse_Status,
+    EnclaveFinalizeWaitCertificateResponse_Status,
+    EnclaveVerifyWaitCertificateResponse_Status,
+    EnclaveReleaseWaitCertificateResponse_Status,
+};
 
 fn generate_correlation_id() -> String {
     const LENGTH: usize = 16;
@@ -74,7 +90,7 @@ impl ZmqEnclaveService {
 macro_rules! check_ok {
     ($r:expr, $ok:pat) => {
         match $r.get_status() {
-            $ok => Ok(()),
+            $ok => Ok($r),
             status => Err(Error::ReceiveError(format!(
                 "Failed with status {:?}",
                 status
@@ -83,42 +99,110 @@ macro_rules! check_ok {
     };
 }
 
-impl ZmqEnclaveService {
-    fn send_to(
-        &mut self,
-        enclave: &EnclaveId,
-        message_type: &str,
-        payload: Vec<u8>,
-    ) -> Result<(), Error> {
-        let mut request = EngineSendToRequest::new();
-        request.set_content(payload);
-        request.set_message_type(message_type.into());
-        request.set_receiver_id((*enclave).clone());
-
-        let response: EngineSendToResponse = self.rpc(
-            &request,
-            Message_MessageType::ENGINE_SEND_TO_REQUEST,
-            Message_MessageType::ENGINE_SEND_TO_RESPONSE,
-        )?;
-
-        check_ok!(response, EngineSendToResponse_Status::OK)
-    }
-}
-
 impl EnclaveService for ZmqEnclaveService {
-    fn initialize_wait_certificate(prev_wait_cert: &str, prev_wait_cert_sig: &str, validator_id: &str, poet_pub_key: &str) -> Result<u64, Error> {
-        unimplemented!()
+    fn initialize_wait_certificate(
+        &mut self,
+        prev_wait_cert: &str,
+        prev_wait_cert_sig: &str,
+        validator_id: &str,
+        poet_pub_key: &str
+    ) -> Result<u64, Error> {
+        let mut request = EnclaveInitializeWaitCertificateRequest::new();
+        request.set_prev_wait_cert(prev_wait_cert.to_string());
+        request.set_prev_wait_cert_sig(prev_wait_cert_sig.to_string());
+        request.set_validator_id(validator_id.to_string());
+        request.set_poet_pub_key(poet_pub_key.to_string());
+
+        let response: EnclaveInitializeWaitCertificateResponse = match self.rpc(
+            &request,
+            Message_MessageType::ENCLAVE_INITIALIZE_WAIT_CERTIFICATE_REQUEST,
+            Message_MessageType::ENCLAVE_INITIALIZE_WAIT_CERTIFICATE_RESPONSE,
+        ) {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        match check_ok!(response, EnclaveInitializeWaitCertificateResponse_Status::OK) {
+            Ok(res) => Ok(res.get_duration()),
+            Err(err) => Err(err),
+        }
     }
 
-    fn finalize_wait_certificate(prev_wait_cert: &str, prev_wait_cert_sig: &str, prev_block_id: &str, block_summary: &str, wait_time: u64) -> Result<_, Error> {
-        unimplemented!()
+    fn finalize_wait_certificate(
+        &mut self,
+        prev_wait_cert: &str,
+        prev_wait_cert_sig: &str,
+        prev_block_id: &str,
+        block_summary: &str,
+        wait_time: u64
+    ) -> Result<SgxWaitCertificate, Error> {
+        let mut request = EnclaveFinalizeWaitCertificateRequest::new();
+        request.set_prev_wait_cert(prev_wait_cert.to_string());
+        request.set_prev_wait_cert_sig(prev_wait_cert_sig.to_string());
+        request.set_prev_block_id(prev_block_id.to_string());
+        request.set_block_summary(block_summary.to_string());
+        request.set_wait_time(wait_time);
+
+        let response: EnclaveFinalizeWaitCertificateResponse = match self.rpc(
+            &request,
+            Message_MessageType::ENCLAVE_FINALIZE_WAIT_CERTIFICATE_REQUEST,
+            Message_MessageType::ENCLAVE_FINALIZE_WAIT_CERTIFICATE_RESPONSE,
+        ) {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        match check_ok!(response, EnclaveFinalizeWaitCertificateResponse_Status::OK) {
+            Ok(res) => Ok(res.get_sgx_wait_certificate()),
+            Err(err) => Err(err),
+        }
     }
 
-    fn verify_wait_certificate(wait_cert: &str, wait_cert_sign: &str, poet_pub_key: &str) -> Result<bool, Error> {
-        unimplemented!()
+    fn verify_wait_certificate(
+        &mut self,
+        wait_cert: &str,
+        wait_cert_sig: &str,
+        poet_pub_key: &str
+    ) -> Result<bool, Error> {
+        let mut request = EnclaveVerifyWaitCertificateRequest::new();
+        request.set_wait_cert(wait_cert.to_string());
+        request.set_wait_cert_sig(wait_cert_sig.to_string());
+        request.set_poet_pub_key(poet_pub_key.to_string());
+
+        let response: EnclaveVerifyWaitCertificateResponse = match self.rpc(
+            &request,
+            Message_MessageType::ENCLAVE_VERIFY_WAIT_CERTIFICATE_REQUEST,
+            Message_MessageType::ENCLAVE_VERIFY_WAIT_CERTIFICATE_RESPONSE,
+        ) {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        match check_ok!(response, EnclaveVerifyWaitCertificateResponse_Status::OK) {
+            Ok(res) => Ok(res.get_status()),
+            Err(err) => Err(err),
+        }
     }
 
-    fn release_wait_certificate(wait_cert: &str) -> Result<bool, Error> {
-        unimplemented!()
+    fn release_wait_certificate(
+        &mut self,
+        wait_cert: &str
+    ) -> Result<bool, Error> {
+        let mut request = EnclaveReleaseWaitCertificateRequest::new();
+        request.set_wait_cert(wait_cert.to_string());
+
+        let response: EnclaveReleaseWaitCertificateResponse = match self.rpc(
+            &request,
+            Message_MessageType::ENCLAVE_RELEASE_WAIT_CERTIFICATE_REQUEST,
+            Message_MessageType::ENCLAVE_RELEASE_WAIT_CERTIFICATE_RESPONSE,
+        ) {
+            Ok(res) => res,
+            Err(err) => return Err(err),
+        };
+
+        match check_ok!(response, EnclaveReleaseWaitCertificateResponse_Status::OK) {
+            Ok(res) => Ok(get_status()),
+            Err(err) => Err(err),
+        }
     }
 }

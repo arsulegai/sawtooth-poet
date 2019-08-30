@@ -45,6 +45,15 @@ pub fn read_binary_file(filename: &str) -> Vec<u8> {
     buffer
 }
 
+/// Reads the given file as string, ignore the new line character at end
+///
+/// Note: This method will panic if file is not found or error occurs when reading file as string.
+pub fn read_file_as_string_ignore_line_end(filename: &str) -> String {
+    let mut read_contents = read_file_as_string(filename);
+    read_contents.pop();
+    read_contents
+}
+
 /// Convert from byte array to hex string
 pub fn to_hex_string(bytes: &[u8]) -> String {
     hex_codec::encode(bytes)
