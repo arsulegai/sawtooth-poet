@@ -1,7 +1,7 @@
 
 ![Hyperledger Sawtooth](images/sawtooth_logo_light_blue-small.png)
 
-Hyperledger Sawtooth - PoET Developer's Setup Guide
+Hyperledger Sawtooth - PoET2 Developer's Setup Guide
 =============
 
 If you are planning to contribute code to the Sawtooth PoET project, please

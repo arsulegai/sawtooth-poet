@@ -1,7 +1,7 @@
 # Contributing to Hyperledger Sawtooth
 
-Hyperledger Sawtooth is Apache 2.0 licensed and accepts contributions via
-[GitHub](https://github.com/hyperledger/sawtooth-poet) pull requests.
+Hyperledger Sawtooth PoET2 is Apache 2.0 licensed and accepts contributions via
+[GitHub](https://github.com/hyperledger-labs/sawtooth-poet2) pull requests.
 
 Please see
 [Contributing](https://sawtooth.hyperledger.org/docs/core/releases/latest/community/contributing.html)

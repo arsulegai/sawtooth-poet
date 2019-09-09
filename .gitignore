@@ -1,4 +1,4 @@
-# Copyright 2018 Intel Corporation
+# Copyright 2019 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 # Exclude poet2 build artifacts
 /build/
+/docker/compose/log*
 
 /core/target/
 /core/Cargo.lock
