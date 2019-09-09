@@ -61,7 +61,7 @@ ENV PATH=$PATH:/protoc3/bin:/project/sawtooth-poet/bin:/root/.cargo/bin \
 
 WORKDIR /tmp
 
-RUN bash -c " mkdir /etc/init \
+RUN bash -c "mkdir /etc/init \
   && wget https://download.01.org/intel-sgx/linux-2.3/ubuntu18.04-server/libsgx-enclave-common_2.3.100.46354-1_amd64.deb \
   && dpkg -i libsgx-enclave-common_2.3.100.46354-1_amd64.deb \
   && wget https://download.01.org/intel-sgx/linux-2.3/ubuntu18.04-server/sgx_linux_x64_sdk_2.3.100.46354.bin \
