@@ -50,13 +50,10 @@ const REGISTER_ACTION: &str = "register";
 const VALIDATOR_NAME_PREFIX: &str = "validator-";
 const NAMESPACE_ADDRESS_LENGTH: usize = 6;
 const MAX_SETTINGS_PARTS: usize = 4;
-const SETTINGS_PART_LENGTH: usize = 16;
 const CONFIGSPACE_NAMESPACE: &str = "000000";
 const PUBLIC_KEY_IDENTIFIER_LENGTH: usize = 8;
 const DEFAULT_POET_CLIENT_PRIVATE_KEY: &str = "/etc/sawtooth/keys/validator.priv";
 const APPLICATION_OCTET_STREAM: &str = "application/octet-stream";
-const SETTING_KEY_SEPARATOR: &str = ".";
-const EMPTY_STR: &str = "";
 const SAWTOOTH_POET_VALID_MEASUREMENTS: &str = "sawtooth.poet.valid_enclave_measurements";
 const SAWTOOTH_POET_VALID_BASENAMES: &str = "sawtooth.poet.valid_enclave_basenames";
 const SAWTOOTH_SETTINGS_VOTE_PROPOSALS: &str = "sawtooth.settings.vote.proposals";
@@ -83,7 +80,7 @@ pub fn do_create_registration(
     }
     let read_key = read_file_as_string_ignore_line_end(key_file.as_str());
 
-    let private_key: Box<PrivateKey> =
+    let private_key: Box<dyn PrivateKey> =
         Box::new(Secp256k1PrivateKey::from_hex(read_key.as_str()).expect("Invalid private key"));
     let context = create_context(CONTEXT_ALGORITHM_NAME).expect("Unsupported algorithm");
     let signer = Signer::new(context.as_ref(), private_key.as_ref());
@@ -164,7 +161,11 @@ pub fn do_create_registration(
 }
 
 /// Temporary functions to create settings transactions for enclave measuremenrs and the basename
-fn create_mr_enclave(signer: &Signer, public_key: &Box<PublicKey>, mr_enclave: String) -> Batch {
+fn create_mr_enclave(
+    signer: &Signer,
+    public_key: &Box<dyn PublicKey>,
+    mr_enclave: String
+) -> Batch {
     let address = get_address_for_setting(SAWTOOTH_POET_VALID_MEASUREMENTS);
     let other_address1 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_PROPOSALS);
     let other_address2 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_AUTHORIZED_KEYS);
@@ -200,7 +201,11 @@ fn create_mr_enclave(signer: &Signer, public_key: &Box<PublicKey>, mr_enclave: S
     create_batch(signer, transaction)
 }
 
-fn create_basename(signer: &Signer, public_key: &Box<PublicKey>, basename: String) -> Batch {
+fn create_basename(
+    signer: &Signer,
+    public_key: &Box<dyn PublicKey>,
+    basename: String
+) -> Batch {
     let address = get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES);
     let other_address1 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_PROPOSALS);
     let other_address2 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_AUTHORIZED_KEYS);
@@ -305,7 +310,7 @@ fn create_transaction_header_settings(
     input_addresses: &[String],
     output_addresses: &[String],
     payload: &[u8],
-    public_key: &Box<PublicKey>,
+    public_key: &Box<dyn PublicKey>,
     nonce: String,
 ) -> TransactionHeader {
     // Construct transaction header
@@ -328,7 +333,7 @@ fn create_transaction_header(
     input_addresses: &[String],
     output_addresses: &[String],
     payload: &[u8],
-    public_key: &Box<PublicKey>,
+    public_key: &Box<dyn PublicKey>,
     nonce: String,
 ) -> TransactionHeader {
     // Construct transaction header
