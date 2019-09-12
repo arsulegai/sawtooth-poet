@@ -1,4 +1,4 @@
-# Copyright 2018 Intel Corporation
+# Copyright 2019 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,15 +22,16 @@ volumes:
 
 services:
 
-  validator-1:
-    image: hyperledger/sawtooth-validator:nightly
+  validator:
+    image: hyperledger/sawtooth-validator:chime
     expose:
       - 4004
       - 8800
       - 5050
     volumes:
       - poet-share:/poet_keys
-      - ./logs1/validator:/var/log/sawtooth
+      - ./logs/validator:/var/log/sawtooth
+      - ./core/src/resources:/config
     # start the validator with an empty genesis batch
     working_dir: /root
     command: "bash -c \"\
@@ -44,16 +45,19 @@ services:
           -o config-genesis.batch && \
         sawset proposal create \
           -k /etc/sawtooth/keys/validator.priv \
-          sawtooth.consensus.algorithm.name=PoET \
-          sawtooth.consensus.algorithm.version=2.0 \
           sawtooth.consensus.poet2.block_claim_delay=0 \
           sawtooth.consensus.poet2.key_block_claim_limit=65536 \
+          sawtooth.consensus.algorithm.name=PoET \
+          sawtooth.consensus.algorithm.version=2.0 \
+          sawtooth.poet.block_claim_delay=0 \
+          sawtooth.poet.report_public_key_pem=\
+          \\\"$$(cat /config/ias_report_key.pem)\\\" \
           -o config.batch && \
         sawadm genesis \
           config-genesis.batch config.batch /poet_keys/poet-config.batch && \
         echo $$(cat /etc/sawtooth/keys/validator.pub); \
         sawtooth-validator -v \
-            --endpoint tcp://validator-1:8800 \
+            --endpoint tcp://validator:8800 \
             --bind component:tcp://eth0:4004 \
             --bind network:tcp://eth0:8800 \
             --bind consensus:tcp://eth0:5050 \
@@ -61,7 +65,7 @@ services:
     \""
     stop_signal: SIGKILL
 
-  poet-2-engine-1:
+  poet-2-engine:
     build:
       context: .
       dockerfile: core/Dockerfile
@@ -73,15 +77,11 @@ services:
       - ./:/project/sawtooth-poet/
       - cargo-registry:/root/.cargo/registry
       - poet-share:/poet_keys
-      - ./logs1/poet:/var/log/sawtooth-poet
+      - ./logs/poet:/var/log/sawtooth-poet
     working_dir: '/project/sawtooth-poet/core'
-    environment:
-      - 'http_proxy=${http_proxy}'
-      - 'https_proxy=${https_proxy}'
-      - 'no_proxy=${no_proxy},validator-1,rest-api-1'
     depends_on:
-      - validator-1
-      - sawtooth_validator_registry-1
+      - validator
+      - validator-registry-tp
     entrypoint: "bash -c \"\
         rm -f /poet_keys/poet-config.batch \
         && while [ ! -f /poet_keys/validator.priv ]; do sleep 1; done \
@@ -90,63 +90,59 @@ services:
         && cp /poet_keys/validator.* /etc/sawtooth/keys/ \
         && source /project/sawtooth-poet/build_sgx_binary.sh \
         && RUST_BACKTRACE=1 cargo run --bin sawtooth-poet -- -C \
-        tcp://validator-1:5050 --config \
+        tcp://validator:5050 --config \
         /project/sawtooth-poet/core/src/resources/poet_config.toml -v \
         --genesis /poet_keys/poet-config.batch \""
     stop_signal: SIGKILL
 
-  rest-api-1:
-    image: hyperledger/sawtooth-rest-api:latest
+  rest-api:
+    image: hyperledger/sawtooth-rest-api:chime
     expose:
       - "8008"
     depends_on:
-      - validator-1
-    entrypoint: sawtooth-rest-api -C tcp://validator-1:4004 --bind rest-api-1:8008
+      - validator
+    entrypoint: sawtooth-rest-api -C tcp://validator:4004 --bind rest-api:8008
 
-  settings-tp-1:
-    image: hyperledger/sawtooth-settings-tp:latest
+  settings-tp:
+    image: hyperledger/sawtooth-settings-tp:chime
     depends_on:
-      - validator-1
-    entrypoint: settings-tp -vv -C tcp://validator-1:4004
+      - validator
+    entrypoint: settings-tp -vv -C tcp://validator:4004
 
-  intkey-tp-python-1:
-    image: hyperledger/sawtooth-intkey-tp-python:latest
+  intkey-tp-python:
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     depends_on:
-      - validator-1
-    entrypoint: intkey-tp-python -vv -C tcp://validator-1:4004
+      - validator
+    entrypoint: intkey-tp-python -vv -C tcp://validator:4004
 
   shell:
-    image: hyperledger/sawtooth-all:latest
+    image: hyperledger/sawtooth-shell:chime
     container_name: sawtooth-shell-default
     depends_on:
-      - rest-api-1
+      - rest-api
     entrypoint: "bash -c \"\
         sawtooth keygen --force && \
         tail -f /dev/null \
         \""
 
-  validator-registry-tp-1:
-    image: sawtooth-poet-sawtooth_validator_registry:latest
+  validator-registry-tp:
+    image: sawtooth-poet-validator-registry-tp:latest
     build:
-      context: ./
-      dockerfile: sawtooth_validator_registry/Dockerfile
+      context: .
+      dockerfile: ./families/Dockerfile
       args:
         - http_proxy
         - https_proxy
         - no_proxy
     volumes:
-      - ./sawtooth_validator_registry:/project/sawtooth_validator_registry/
+      - .:/project/
       - cargo-registry-tp:/root/.cargo/registry
-    working_dir: '/project/sawtooth_validator_registry'
-    environment:
-      - 'http_proxy=${http_proxy}'
-      - 'https_proxy=${https_proxy}'
-      - 'no_proxy=${no_proxy},validator-1'
+    working_dir: '/project/families/sawtooth_validator_registry/validator_registry'
     depends_on:
-      - validator-1
+      - validator
     entrypoint: "bash -c \"\
-        RUST_BACKTRACE=1 cargo run --bin sawtooth_validator_registry -- -vv -C \
-        tcp://validator-1:4004 && \
-         tail -f /dev/null \
-        \""
+        RUST_BACKTRACE=1 cargo run --bin poet-validator-registry-tp -- -vv -C \
+        tcp://validator:4004 && \
+        tail -f /dev/null \
+      \""
     stop_signal: SIGKILL

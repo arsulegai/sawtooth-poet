@@ -23,7 +23,7 @@ volumes:
 services:
 
   validator-1:
-    image: hyperledger/sawtooth-validator:nightly
+    image: hyperledger/sawtooth-validator:chime
     expose:
       - 4004
       - 8800
@@ -68,7 +68,7 @@ services:
     stop_signal: SIGKILL
 
   validator-2:
-    image: hyperledger/sawtooth-validator:nightly
+    image: hyperledger/sawtooth-validator:chime
     expose:
       - 4004
       - 8800
@@ -97,7 +97,7 @@ services:
     stop_signal: SIGKILL
 
   validator-3:
-    image: hyperledger/sawtooth-validator:nightly
+    image: hyperledger/sawtooth-validator:chime
     expose:
       - 4004
       - 8800
@@ -222,7 +222,7 @@ services:
     stop_signal: SIGKILL
 
   rest-api-1:
-    image: hyperledger/sawtooth-rest-api:latest
+    image: hyperledger/sawtooth-rest-api:chime
     expose:
       - "8008"
     depends_on:
@@ -230,7 +230,7 @@ services:
     entrypoint: sawtooth-rest-api -C tcp://validator-1:4004 --bind rest-api-1:8008
 
   rest-api-2:
-    image: hyperledger/sawtooth-rest-api:latest
+    image: hyperledger/sawtooth-rest-api:chime
     expose:
       - "8008"
     depends_on:
@@ -238,7 +238,7 @@ services:
     entrypoint: sawtooth-rest-api -C tcp://validator-2:4004 --bind rest-api-2:8008
 
   rest-api-3:
-    image: hyperledger/sawtooth-rest-api:latest
+    image: hyperledger/sawtooth-rest-api:chime
     expose:
       - "8008"
     depends_on:
@@ -246,43 +246,43 @@ services:
     entrypoint: sawtooth-rest-api -C tcp://validator-3:4004 --bind rest-api-3:8008
 
   settings-tp-1:
-    image: hyperledger/sawtooth-settings-tp:latest
+    image: hyperledger/sawtooth-settings-tp:chime
     depends_on:
       - validator-1
     entrypoint: settings-tp -vv -C tcp://validator-1:4004
 
   settings-tp-2:
-    image: hyperledger/sawtooth-settings-tp:latest
+    image: hyperledger/sawtooth-settings-tp:chime
     depends_on:
       - validator-2
     entrypoint: settings-tp -vv -C tcp://validator-2:4004
 
   settings-tp-3:
-    image: hyperledger/sawtooth-settings-tp:latest
+    image: hyperledger/sawtooth-settings-tp:chime
     depends_on:
       - validator-3
     entrypoint: settings-tp -vv -C tcp://validator-3:4004
 
   intkey-tp-python-1:
-    image: hyperledger/sawtooth-intkey-tp-python:latest
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     depends_on:
       - validator-1
     entrypoint: intkey-tp-python -vv -C tcp://validator-1:4004
 
   intkey-tp-python-2:
-    image: hyperledger/sawtooth-intkey-tp-python:latest
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     depends_on:
       - validator-2
     entrypoint: intkey-tp-python -vv -C tcp://validator-2:4004
 
   intkey-tp-python-3:
-    image: hyperledger/sawtooth-intkey-tp-python:latest
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     depends_on:
       - validator-3
     entrypoint: intkey-tp-python -vv -C tcp://validator-3:4004
 
   validator-registry-tp-1:
-    image: sawtooth-poet-sawtooth_validator_registry:latest
+    image: sawtooth-poet-validator-registry-tp:latest
     build:
       context: ./
       dockerfile: ../../families/Dockerfile
@@ -308,7 +308,7 @@ services:
     stop_signal: SIGKILL
 
   validator-registry-tp-2:
-    image: sawtooth-poet-sawtooth_validator_registry:latest
+    image: sawtooth-poet-validator-registry-tp:latest
     build:
       context: ./
       dockerfile: ../../families/Dockerfile
@@ -334,7 +334,7 @@ services:
     stop_signal: SIGKILL
 
   validator-registry-tp-3:
-    image: sawtooth-poet-sawtooth_validator_registry:latest
+    image: sawtooth-poet-validator-registry-tp:latest
     build:
       context: ./
       dockerfile: ../../families/Dockerfile
@@ -360,11 +360,16 @@ services:
     stop_signal: SIGKILL
 
   shell:
-    image: hyperledger/sawtooth-all:latest
+    image: hyperledger/sawtooth-shell:chime
     container_name: sawtooth-shell-default
     depends_on:
       - rest-api-1
       - rest-api-2
+      - rest-api-3
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=${no_proxy},rest-api-1,rest-api-2,rest-api-3'
     entrypoint: "bash -c \"\
         sawtooth keygen --force && \
         tail -f /dev/null \

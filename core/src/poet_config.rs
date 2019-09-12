@@ -25,7 +25,7 @@ pub struct PoetConfig {
     rest_api: String,
     ias_report_key_file: String,
     poet_client_private_key_file: String,
-    is_genesis_node: bool,
+    is_genesis_node: Option<bool>,
     genesis_batch_path: String,
     validator_pub_key: String,
     log_dir: String,
@@ -66,7 +66,7 @@ impl PoetConfig {
     }
 
     pub fn is_genesis(&self) -> bool {
-        self.is_genesis_node
+        self.is_genesis_node.unwrap()
     }
 
     pub fn get_genesis_batch_path(&self) -> String {
@@ -78,7 +78,7 @@ impl PoetConfig {
     }
 
     pub fn set_is_genesis(&mut self, is_genesis: bool) {
-        self.is_genesis_node = is_genesis;
+        self.is_genesis_node = Some(is_genesis);
     }
 
     pub fn set_genesis_batch_path(&mut self, path: String) {

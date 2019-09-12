@@ -63,14 +63,14 @@ pub fn verify_signup_info(
             Err(_) =>
                 return Err(
                     ApplyError::InvalidTransaction(
-                        format!("Error reading config setting: PoET public key"),
+                        format!("Error reading config setting: IAS report public key"),
                     ),
                 ),
         };
     if report_public_key_pem.is_none() {
         return Err(
             ApplyError::InvalidTransaction(
-                format!("Error reading config setting: PoET public key"),
+                format!("Error reading config setting: IAS report public key"),
             ),
         );
     }
