@@ -60,12 +60,6 @@ ias_report_key_file = ''
 
 poet_client_private_key_file = '/etc/sawtooth/keys/validator.priv'
 
-# is_genesis_node is a boolean flag to be set to true, when running on a genesis
-# node. This is required for PoET engine to decide if need to send registration
-# request or not.
-
-is_genesis_node = true
-
 # genesis_batch_path is applicable for genesis node. The path where batch file
 # will be stored, default being current working directory.
 

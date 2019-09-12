@@ -146,14 +146,21 @@ pub fn do_create_registration(
     // Create transaction
     let transaction = create_transaction(&signer, &transaction_header, payload);
 
-    let created_mr_enclave_batch = create_mr_enclave(&signer, &public_key, mr_enclave);
-    let created_basename_batch = create_basename(&signer, &public_key, basename);
-
     // Create batch header, batch
     let batch = create_batch(&signer, transaction);
 
-    // Create batch list
-    create_batch_list(vec![created_mr_enclave_batch, created_basename_batch, batch])
+    let mut batches = Vec::new();
+
+    // Genesis node has to create a settings list
+    if config.is_genesis() {
+        let created_mr_enclave_batch = create_mr_enclave(&signer, &public_key, mr_enclave);
+        let created_basename_batch = create_basename(&signer, &public_key, basename);
+        // Create batch list
+        batches.push(created_mr_enclave_batch);
+        batches.push(created_basename_batch);
+    }
+    batches.push(batch);
+    create_batch_list(batches)
 }
 
 /// Temporary functions to create settings transactions for enclave measuremenrs and the basename

@@ -159,6 +159,8 @@ fn main() {
     if genesis_arg.is_some() {
         config.set_is_genesis(true);
         config.set_genesis_batch_path(genesis_arg.unwrap().to_string());
+    } else {
+        config.set_is_genesis(false);
     }
 
     let (driver, _stop_handle) = ZmqDriver::new();
