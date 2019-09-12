@@ -31,7 +31,7 @@ impl fmt::Display for VRVStateError {
 }
 
 impl error::Error for VRVStateError {
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         None
     }
 }
@@ -61,7 +61,7 @@ pub fn get_validator_info_for_validator_id(
     let raw_value = state_data.get(&validator_id_addr);
     info!("State data while reading {:?}", state_data);
     if raw_value.is_some() {
-        let mut validator_info: ValidatorInfo = match protobuf::parse_from_bytes(raw_value.unwrap()) {
+        let validator_info: ValidatorInfo = match protobuf::parse_from_bytes(raw_value.unwrap()) {
             Ok(info) => info,
             Err(_) => return Err(VRVStateError),
         };

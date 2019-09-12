@@ -110,7 +110,7 @@ impl Engine for Poet2Engine {
     fn start(
         &mut self,
         updates: Receiver<Update>,
-        service: Box<Service>,
+        service: Box<dyn Service>,
         startup_state: StartupState,
     ) -> Result<(), Error> {
         info!("Started PoET 2 Engine...");

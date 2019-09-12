@@ -49,3 +49,4 @@
 *.batch
 *.pdf
 *.bat
+logs/*

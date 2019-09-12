@@ -208,8 +208,8 @@ impl ConsensusState {
 
         debug!("Staring the updation of states");
         for entry in blocks.iter().rev() {
-            let mut value = &entry.value;
-            let mut key: BlockId = entry.key.clone();
+            let value = &entry.value;
+            let key: BlockId = entry.key.clone();
             if value.wait_certificate.is_none() {
                 consensus_state = Some(ConsensusState::default());
             } else {

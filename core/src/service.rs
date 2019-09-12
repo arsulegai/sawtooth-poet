@@ -26,14 +26,14 @@ use std::time;
 use std::time::Instant;
 
 pub struct Poet2Service {
-    service: Box<Service>,
+    service: Box<dyn Service>,
     init_wall_clock: Instant,
     chain_clock: u64,
     pub enclave: EnclaveConfig,
 }
 
 impl Poet2Service {
-    pub fn new(service_: Box<Service>, enclave_config: EnclaveConfig) -> Self {
+    pub fn new(service_: Box<dyn Service>, enclave_config: EnclaveConfig) -> Self {
         let now = Instant::now();
         Poet2Service {
             service: service_,

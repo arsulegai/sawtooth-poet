@@ -21,7 +21,9 @@ extern crate openssl;
 use ias_client::{client_utils::read_body_as_string, ias_client::IasClient};
 use openssl::pkey::PKey;
 use poet2_util::{
-    get_cert_and_sig_from, read_binary_file, read_file_as_string, sha512_from_str,
+    get_cert_and_sig_from,
+    read_file_as_string,
+    sha512_from_str,
     verify_message_signature,
 };
 use poet_config::PoetConfig;
