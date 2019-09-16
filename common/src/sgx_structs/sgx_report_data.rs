@@ -15,14 +15,17 @@
 ------------------------------------------------------------------------------
 */
 
-use sgx_structs::{SgxStruct, sgx_struct_error::SgxStructError,
-                  sgx_struct_serde::{serialize_to_bytes, parse_from_bytes, SgxSerdeEndian}};
+use sgx_structs::{
+    sgx_struct_error::SgxStructError,
+    sgx_struct_serde::{parse_from_bytes, serialize_to_bytes, SgxSerdeEndian},
+    SgxStruct,
+};
 
 pub const STRUCT_SIZE: usize = 64;
 pub const DEFAULT_VALUE: u8 = 0;
 const ENDIANNESS: SgxSerdeEndian = SgxSerdeEndian::LittleEndian;
 
-big_array!{ BigArray; }
+big_array! { BigArray; }
 
 /// Provide a wrapper around sgx_report_data_t
 ///

@@ -22,8 +22,8 @@ use crypto::sha2::Sha256;
 use openssl::hash::MessageDigest;
 use openssl::pkey::PKey;
 use openssl::pkey::Private;
-use openssl::sign::Signer;
 use openssl::sha;
+use openssl::sign::Signer;
 use rand::Rng;
 
 use common::sgx_structs::{sgx_basename::SgxBasename, sgx_measurement::SgxMeasurement, SgxStruct};
@@ -40,39 +40,35 @@ const VALID_ENCLAVE_MEASUREMENT: &str =
 /// public key used to verify the signature on the attestation verification reports.
 const REPORT_PRIVATE_KEY_PEM: &str =
     "-----BEGIN PRIVATE KEY-----\n\
-    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCsy/NmLwZP6Uj0\n\
-    p5mIiefgK8VOK7KJ34g3h0/X6aFOd/Ff4j+e23wtQpkxsjVHWLM5SjElGhfpVDhL\n\
-    1WAMsQI9bpCWR4sjV6p7gOJhv34nkA2Grj5eSHCAJRQXCl+pJ9dYIeKaNoaxkdtq\n\
-    +Xme//ohtkkv/ZjMTfsjMl0RLXokJ+YhSuTpNSovRaCtZfLB5MihVJuV3Qzb2ROh\n\
-    KQxcuyPy9tBtOIrBWJaFiXOLRxAijs+ICyzrqUBbRfoAztkljIBx9KNItHiC4zPv\n\
-    o6DxpGSO2yMQSSrs13PkfyGWVZSgenEYOouEz07X+H5B29PPuW5mCl4nkoH3a9gv\n\
-    rI6VLEx9AgMBAAECggEAImfFge4RCq4/eX85gcc7pRXyBjuLJAqe+7d0fWAmXxJg\n\
-    vB+3XTEEi5p8GDoMg7U0kk6kdGe6pRnAz9CffEduU78FCPcbzCCzcD3cVWwkeUok\n\
-    d1GQV4OC6vD3DBNjsrGdHg45KU18CjUphCZCQhdjvXynG+gZmWxZecuYXkg4zqPT\n\
-    LwOkcdWBPhJ9CbjtiYOtKDZbhcbdfnb2fkxmvnAoz1OWNfVFXh+x7651FrmL2Pga\n\
-    xGz5XoxFYYT6DWW1fL6GNuVrd97wkcYUcjazMgunuUMC+6XFxqK+BoqnxeaxnsSt\n\
-    G2r0sdVaCyK1sU41ftbEQsc5oYeQ3v5frGZL+BgrYQKBgQDgZnjqnVI/B+9iarx1\n\
-    MjAFyhurcKvFvlBtGKUg9Q62V6wI4VZvPnzA2zEaR1J0cZPB1lCcMsFACpuQF2Mr\n\
-    3VDyJbnpSG9q05POBtfLjGQdXKtGb8cfXY2SwjzLH/tvxHm3SP+RxvLICQcLX2/y\n\
-    GTJ+mY9C6Hs6jIVLOnMWkRWamQKBgQDFITE3Qs3Y0ZwkKfGQMKuqJLRw29Tyzw0n\n\
-    XKaVmO/pEzYcXZMPBrFhGvdmNcJLo2fcsmGZnmit8RP4ChwHUlD11dH1Ffqw9FWc\n\
-    387i0chlE5FhQPirSM8sWFVmjt2sxC4qFWJoAD/COQtKHgEaVKVc4sH/yRostL1C\n\
-    r+7aWuqzhQKBgQDcuC5LJr8VPGrbtPz1kY3mw+r/cG2krRNSm6Egj6oO9KFEgtCP\n\
-    zzjKQU9E985EtsqNKI5VdR7cLRLiYf6r0J6j7zO0IAlnXADP768miUqYDuRw/dUw\n\
-    JsbwCZneefDI+Mp325d1/egjla2WJCNqUBp4p/Zf62f6KOmbGzzEf6RuUQKBgG2y\n\
-    E8YRiaTOt5m0MXUwcEZk2Hg5DF31c/dkalqy2UYU57aPJ8djzQ8hR2x8G9ulWaWJ\n\
-    KiCm8s9gaOFNFt3II785NfWxPmh7/qwmKuUzIdWFNxAsbHQ8NvURTqyccaSzIpFO\n\
-    hw0inlhBEBQ1cB2r3r06fgQNb2BTT0Itzrd5gkNVAoGBAJcMgeKdBMukT8dKxb4R\n\
-    1PgQtFlR3COu2+B00pDyUpROFhHYLw/KlUv5TKrH1k3+E0KM+winVUIcZHlmFyuy\n\
-    Ilquaova1YSFXP5cpD+PKtxRV76Qlqt6o+aPywm81licdOAXotT4JyJhrgz9ISnn\n\
-    J13KkHoAZ9qd0rX7s37czb3O\n\
-    -----END PRIVATE KEY-----";
+     MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCsy/NmLwZP6Uj0\n\
+     p5mIiefgK8VOK7KJ34g3h0/X6aFOd/Ff4j+e23wtQpkxsjVHWLM5SjElGhfpVDhL\n\
+     1WAMsQI9bpCWR4sjV6p7gOJhv34nkA2Grj5eSHCAJRQXCl+pJ9dYIeKaNoaxkdtq\n\
+     +Xme//ohtkkv/ZjMTfsjMl0RLXokJ+YhSuTpNSovRaCtZfLB5MihVJuV3Qzb2ROh\n\
+     KQxcuyPy9tBtOIrBWJaFiXOLRxAijs+ICyzrqUBbRfoAztkljIBx9KNItHiC4zPv\n\
+     o6DxpGSO2yMQSSrs13PkfyGWVZSgenEYOouEz07X+H5B29PPuW5mCl4nkoH3a9gv\n\
+     rI6VLEx9AgMBAAECggEAImfFge4RCq4/eX85gcc7pRXyBjuLJAqe+7d0fWAmXxJg\n\
+     vB+3XTEEi5p8GDoMg7U0kk6kdGe6pRnAz9CffEduU78FCPcbzCCzcD3cVWwkeUok\n\
+     d1GQV4OC6vD3DBNjsrGdHg45KU18CjUphCZCQhdjvXynG+gZmWxZecuYXkg4zqPT\n\
+     LwOkcdWBPhJ9CbjtiYOtKDZbhcbdfnb2fkxmvnAoz1OWNfVFXh+x7651FrmL2Pga\n\
+     xGz5XoxFYYT6DWW1fL6GNuVrd97wkcYUcjazMgunuUMC+6XFxqK+BoqnxeaxnsSt\n\
+     G2r0sdVaCyK1sU41ftbEQsc5oYeQ3v5frGZL+BgrYQKBgQDgZnjqnVI/B+9iarx1\n\
+     MjAFyhurcKvFvlBtGKUg9Q62V6wI4VZvPnzA2zEaR1J0cZPB1lCcMsFACpuQF2Mr\n\
+     3VDyJbnpSG9q05POBtfLjGQdXKtGb8cfXY2SwjzLH/tvxHm3SP+RxvLICQcLX2/y\n\
+     GTJ+mY9C6Hs6jIVLOnMWkRWamQKBgQDFITE3Qs3Y0ZwkKfGQMKuqJLRw29Tyzw0n\n\
+     XKaVmO/pEzYcXZMPBrFhGvdmNcJLo2fcsmGZnmit8RP4ChwHUlD11dH1Ffqw9FWc\n\
+     387i0chlE5FhQPirSM8sWFVmjt2sxC4qFWJoAD/COQtKHgEaVKVc4sH/yRostL1C\n\
+     r+7aWuqzhQKBgQDcuC5LJr8VPGrbtPz1kY3mw+r/cG2krRNSm6Egj6oO9KFEgtCP\n\
+     zzjKQU9E985EtsqNKI5VdR7cLRLiYf6r0J6j7zO0IAlnXADP768miUqYDuRw/dUw\n\
+     JsbwCZneefDI+Mp325d1/egjla2WJCNqUBp4p/Zf62f6KOmbGzzEf6RuUQKBgG2y\n\
+     E8YRiaTOt5m0MXUwcEZk2Hg5DF31c/dkalqy2UYU57aPJ8djzQ8hR2x8G9ulWaWJ\n\
+     KiCm8s9gaOFNFt3II785NfWxPmh7/qwmKuUzIdWFNxAsbHQ8NvURTqyccaSzIpFO\n\
+     hw0inlhBEBQ1cB2r3r06fgQNb2BTT0Itzrd5gkNVAoGBAJcMgeKdBMukT8dKxb4R\n\
+     1PgQtFlR3COu2+B00pDyUpROFhHYLw/KlUv5TKrH1k3+E0KM+winVUIcZHlmFyuy\n\
+     Ilquaova1YSFXP5cpD+PKtxRV76Qlqt6o+aPywm81licdOAXotT4JyJhrgz9ISnn\n\
+     J13KkHoAZ9qd0rX7s37czb3O\n\
+     -----END PRIVATE KEY-----";
 
-pub fn get_avr(
-    quote: &str,
-    nonce: &str,
-    originator_pub_key: &str
-) -> Result<(String, String), ()> {
+pub fn get_avr(quote: &str, nonce: &str, originator_pub_key: &str) -> Result<(String, String), ()> {
     let mut epid_pseudonym_bytes: [u8; 64] = [0; 64];
 
     let mut sha_calculator = Sha256::new();
@@ -83,7 +79,10 @@ pub fn get_avr(
     let epid_pseudonym = to_hex_string(&epid_pseudonym_bytes);
 
     // Generate random
-    let id_bytes = rand::thread_rng().gen_iter::<u8>().take(64).collect::<Vec<u8>>();
+    let id_bytes = rand::thread_rng()
+        .gen_iter::<u8>()
+        .take(64)
+        .collect::<Vec<u8>>();
     let id = base64::encode(&id_bytes);
 
     info!("Enclave quote before the base64 encoding is {:?}", quote);
@@ -91,24 +90,25 @@ pub fn get_avr(
     // Generate enclave body quote
     let enclave_quote = quote.to_string(); // base64::encode(quote);
 
-    info!("Enclave quote after the base64 encoding is {:?}", enclave_quote.clone());
+    info!(
+        "Enclave quote after the base64 encoding is {:?}",
+        enclave_quote.clone()
+    );
 
     let timestamp = Utc::now();
 
     let verification_report_json = json!({
-        "epidPseudonym": epid_pseudonym,
-        "id": id,
-        "isvEnclaveQuoteStatus": "OK",
-        "isvEnclaveQuoteBody": enclave_quote,
-        "nonce": nonce.to_string(),
-        "timestamp": timestamp.to_rfc3339()
-        });
+    "epidPseudonym": epid_pseudonym,
+    "id": id,
+    "isvEnclaveQuoteStatus": "OK",
+    "isvEnclaveQuoteBody": enclave_quote,
+    "nonce": nonce.to_string(),
+    "timestamp": timestamp.to_rfc3339()
+    });
 
     let verification_report = verification_report_json.to_string();
 
-    let private_key = match PKey::private_key_from_pem(
-        REPORT_PRIVATE_KEY_PEM.as_bytes(),
-    ) {
+    let private_key = match PKey::private_key_from_pem(REPORT_PRIVATE_KEY_PEM.as_bytes()) {
         Ok(key) => key,
         Err(_) => return Err(()),
     };

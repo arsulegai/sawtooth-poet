@@ -17,13 +17,14 @@
 
 extern crate serde;
 
-use client_utils::{get_http_client, read_response_future, send_response, ClientError,
-                   ClientResponse};
-use hyper::{header, header::HeaderValue, Body, Method, Request, Uri, StatusCode};
+use client_utils::{
+    get_http_client, read_response_future, send_response, ClientError, ClientResponse,
+};
+use hyper::HeaderMap;
+use hyper::{header, header::HeaderValue, Body, Method, Request, StatusCode, Uri};
+use ias_client_sim::get_avr;
 use serde_json;
 use std::{collections::HashMap, str, time::Duration};
-use ias_client_sim::get_avr;
-use hyper::HeaderMap;
 
 /// Structure for storing IAS connection information
 #[derive(Debug, Clone)]
@@ -142,7 +143,7 @@ impl IasClient {
             _ => "",
         };
         info!("received_gid= {:?}", received_gid);
-       // received_gid = "00000AFB";
+        // received_gid = "00000AFB";
         info!("received_gid Modified= {:?}", received_gid);
         final_path.push_str(received_gid);
         let url = final_path
@@ -150,16 +151,18 @@ impl IasClient {
             .expect("Error constructing URI from string");
         info!("Fetching SigRL from:= {:?}", url);
         debug!("Fetching SigRL from: {}", url);
-        
+
         let req = Request::builder()
             .method("GET")
             .uri(url.clone())
-            .header("Ocp-Apim-Subscription-Key", self.ias_subscription_key.clone())
+            .header(
+                "Ocp-Apim-Subscription-Key",
+                self.ias_subscription_key.clone(),
+            )
             .body(Body::from(""))
             .expect("Error constructing the GET request");
         // Send request to get SigRL
-        let client = get_http_client()
-            .expect("Error creating http/s client");
+        let client = get_http_client().expect("Error creating http/s client");
         // TODO: Add logic for request timeout
         let response_fut = client.request(req);
         read_response_future(response_fut)
@@ -178,7 +181,7 @@ impl IasClient {
         api_path: Option<&str>,
     ) -> Result<ClientResponse, ClientError> {
         debug!("Simulating SigRL");
-        Ok(ClientResponse{
+        Ok(ClientResponse {
             body: Body::empty(),
             header_map: HeaderMap::new(),
         })
@@ -220,7 +223,6 @@ impl IasClient {
         manifest: Option<&str>,
         nonce: Option<&str>,
     ) -> Result<ClientResponse, ClientError> {
-
         info!("POST VERIFY ATTESTATION=");
         // REST API to connect to for getting AVR
         let mut final_path = String::new();
@@ -237,10 +239,7 @@ impl IasClient {
         // with keys in request json with empty value. With following code, we are avoiding even
         // addition of keys in request json.
         let mut request_aep: HashMap<String, String> = HashMap::new();
-        request_aep.insert(
-            String::from(ISV_ENCLAVE_QUOTE),
-            quote.to_string(),
-        );
+        request_aep.insert(String::from(ISV_ENCLAVE_QUOTE), quote.to_string());
         // Optional manifest, add to request param if present
         if manifest.is_some() {
             request_aep.insert(String::from(PSE_MANIFEST), manifest.unwrap().to_owned());
@@ -250,20 +249,22 @@ impl IasClient {
             request_aep.insert(String::from(NONCE), nonce.unwrap().to_string());
         }
 
-        let request_aep_str = serde_json::to_string(&request_aep)
-            .expect("Error occurred during AEP serialization");
+        let request_aep_str =
+            serde_json::to_string(&request_aep).expect("Error occurred during AEP serialization");
 
         // Construct hyper's request to be sent
         let req = Request::builder()
             .method("POST")
             .uri(url.clone())
-            .header("Ocp-Apim-Subscription-Key", self.ias_subscription_key.clone())
+            .header(
+                "Ocp-Apim-Subscription-Key",
+                self.ias_subscription_key.clone(),
+            )
             .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(request_aep_str))
             .expect("Error constucting the POST request");
         // Send request to get AVR
-        let client = get_http_client()
-            .expect("Error creating http client");
+        let client = get_http_client().expect("Error creating http client");
 
         debug!("Posting attestation evidence payload: {:#?}", request_aep);
         let response_fut = client.request(req);
@@ -290,8 +291,11 @@ impl IasClient {
         let (verification_report, signature) =
             get_avr(quote, nonce.unwrap(), originator_pub_key).unwrap();
         let mut header_map = HeaderMap::new();
-        header_map.insert(IAS_REPORT_SIGNATURE, HeaderValue::from_str(&signature).unwrap());
-        Ok(ClientResponse{
+        header_map.insert(
+            IAS_REPORT_SIGNATURE,
+            HeaderValue::from_str(&signature).unwrap(),
+        );
+        Ok(ClientResponse {
             body: Body::from(verification_report),
             header_map,
         })
@@ -312,7 +316,10 @@ mod tests {
     fn test_default_ias_client_creation() {
         let default_client = IasClient::default();
         assert_eq!(default_client.ias_url, DEFAULT_URL.clone());
-        assert_eq!(default_client.ias_subscription_key, DUMMY_IAS_SUBSCRIPTION_KEY);
+        assert_eq!(
+            default_client.ias_subscription_key,
+            DUMMY_IAS_SUBSCRIPTION_KEY
+        );
         assert_eq!(default_client.timeout.as_secs(), DEFAULT_DURATION);
     }
 
@@ -325,7 +332,10 @@ mod tests {
             true,
         );
         assert_eq!(new_ias_client.ias_url, DUMMY_URL.clone());
-        assert_eq!(new_ias_client.ias_subscription_key, DUMMY_IAS_SUBSCRIPTION_KEY);
+        assert_eq!(
+            new_ias_client.ias_subscription_key,
+            DUMMY_IAS_SUBSCRIPTION_KEY
+        );
         assert_eq!(new_ias_client.timeout.as_secs(), DUMMY_DURATION);
     }
 
@@ -336,7 +346,10 @@ mod tests {
         default_client.set_ias_subscription_key(DUMMY_IAS_SUBSCRIPTION_KEY.to_string());
         default_client.set_timeout(Duration::new(DUMMY_DURATION, 0));
         assert_eq!(default_client.ias_url, DUMMY_URL.clone());
-        assert_eq!(default_client.ias_subscription_key, DUMMY_IAS_SUBSCRIPTION_KEY);
+        assert_eq!(
+            default_client.ias_subscription_key,
+            DUMMY_IAS_SUBSCRIPTION_KEY
+        );
         assert_eq!(default_client.timeout.as_secs(), DUMMY_DURATION);
     }
     // Reading from response / body, reading of headers are handled in client_utils.rs

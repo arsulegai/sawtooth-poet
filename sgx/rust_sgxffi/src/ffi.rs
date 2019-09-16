@@ -28,13 +28,10 @@ use std::ffi::CString;
 use std::mem::transmute;
 use std::str;
 
-pub fn link_poet_bridge(
-    poet_bridge: &str,
-) -> Result<String, String> {
+pub fn link_poet_bridge(poet_bridge: &str) -> Result<String, String> {
     unsafe {
         let bridge_cstring = CString::new(poet_bridge).unwrap();
-        let bridge_link_status =
-            r_link_bridge(bridge_cstring.as_ptr());
+        let bridge_link_status = r_link_bridge(bridge_cstring.as_ptr());
 
         match bridge_link_status {
             R_SUCCESS => Ok("Success".to_string()),

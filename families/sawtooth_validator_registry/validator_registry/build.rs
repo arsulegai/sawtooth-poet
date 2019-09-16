@@ -19,12 +19,15 @@ extern crate glob;
 extern crate protoc_rust;
 
 use protoc_rust::Customize;
-use std::{env, fs, io::Write, path::{Path, PathBuf}};
+use std::{
+    env, fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 const PROTO_DIR_NAME: &str = "protos";
 
 fn main() {
-
     let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env variable");
     let dest_path = Path::new(&out_dir).join(PROTO_DIR_NAME);
 

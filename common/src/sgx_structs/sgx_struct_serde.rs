@@ -15,9 +15,9 @@
  * ------------------------------------------------------------------------------
  */
 
-use serde::{Serialize, Deserialize};
-use sgx_structs::sgx_struct_error::SgxStructError;
 use bincode::Config;
+use serde::{Deserialize, Serialize};
+use sgx_structs::sgx_struct_error::SgxStructError;
 
 pub enum SgxSerdeEndian {
     BigEndian,

@@ -15,14 +15,15 @@
 ------------------------------------------------------------------------------
 */
 
-use sgx_structs::{sgx_attributes::SgxAttributes,
-                  sgx_cpu_svn::SgxCpuSvn,
-                  sgx_measurement::SgxMeasurement,
-                  sgx_report_data::SgxReportData,
-                  sgx_struct_error::SgxStructError,
-                  sgx_struct_serde::{parse_from_bytes, serialize_to_bytes,
-                                     SgxSerdeEndian},
-                  SgxStruct};
+use sgx_structs::{
+    sgx_attributes::SgxAttributes,
+    sgx_cpu_svn::SgxCpuSvn,
+    sgx_measurement::SgxMeasurement,
+    sgx_report_data::SgxReportData,
+    sgx_struct_error::SgxStructError,
+    sgx_struct_serde::{parse_from_bytes, serialize_to_bytes, SgxSerdeEndian},
+    SgxStruct,
+};
 
 /// const STRUCT_SIZE: usize = 384;
 const RESERVED1: usize = 28;

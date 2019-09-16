@@ -33,7 +33,7 @@ pub struct PoetConfig {
 }
 
 impl PoetConfig {
-    /// Getters fot the members 
+    /// Getters fot the members
     pub fn get_spid(&self) -> String {
         self.spid.clone()
     }
@@ -89,5 +89,4 @@ impl PoetConfig {
     pub fn get_ias_subscription_key(&self) -> String {
         self.ias_subscription_key.clone()
     }
-
 }

@@ -15,10 +15,10 @@
 ------------------------------------------------------------------------------
 */
 
+extern crate bincode;
 #[cfg(test)]
 extern crate rand;
 extern crate serde;
-extern crate bincode;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
@@ -26,5 +26,5 @@ extern crate serde_big_array;
 extern crate hex;
 
 pub mod lru_cache;
-pub mod utils;
 pub mod sgx_structs;
+pub mod utils;

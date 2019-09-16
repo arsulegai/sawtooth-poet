@@ -21,12 +21,10 @@ extern crate openssl;
 use ias_client::{client_utils::read_body_as_string, ias_client::IasClient};
 use openssl::pkey::PKey;
 use poet2_util::{
-    get_cert_and_sig_from,
-    read_file_as_string,
-    sha512_from_str,
-    verify_message_signature,
+    get_cert_and_sig_from, read_file_as_string, sha512_from_str, verify_message_signature,
 };
 use poet_config::PoetConfig;
+use protos::validator_registry::{SignUpInfo, SignUpInfoProof};
 use sawtooth_sdk::consensus::engine::Block;
 use serde_json;
 use serde_json::{from_str, Value};
@@ -41,9 +39,6 @@ use std::path::PathBuf;
 use std::ptr;
 use std::str;
 use std::string::String;
-use protos::validator_registry::{
-    SignUpInfoProof, SignUpInfo,
-};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct WaitCertificate {
@@ -121,9 +116,8 @@ impl EnclaveConfig {
             }
         }
         let bin_path = &lib_path.into_os_string().into_string().unwrap();
-        info!("BRIDGE PATH => {:?}",bin_path);
-        ffi::link_poet_bridge(bin_path)
-            .expect("Failed to link poet bridge");
+        info!("BRIDGE PATH => {:?}", bin_path);
+        ffi::link_poet_bridge(bin_path).expect("Failed to link poet bridge");
         info!("Poet bridge linked");
     }
 
@@ -134,7 +128,7 @@ impl EnclaveConfig {
             basename: ptr::null_mut(),
             epid_group: ptr::null_mut(),
         };
-       // Always fetch SPID from config file, dummy values are accepted when running in
+        // Always fetch SPID from config file, dummy values are accepted when running in
         // simulator mode.
         let spid_str = config.get_spid();
         let lib_file_path = config.get_lib_enclave_path();
@@ -164,15 +158,12 @@ impl EnclaveConfig {
     pub fn initialize_remote_attestation(&mut self, config: &PoetConfig) {
         info!("REMOTE ATTESTATION");
         self.ias_client.set_ias_url(config.get_ias_url());
-        self.ias_client.set_ias_subscription_key(config.get_ias_subscription_key());
+        self.ias_client
+            .set_ias_subscription_key(config.get_ias_subscription_key());
         self.update_sig_rl();
     }
 
-    pub fn create_signup_info(
-        &mut self,
-        pub_key_hash: &str,
-        config: &PoetConfig,
-    ) -> SignUpInfo {
+    pub fn create_signup_info(&mut self, pub_key_hash: &str, config: &PoetConfig) -> SignUpInfo {
         // Update SigRL before getting quote
         self.update_sig_rl();
         let mut eid: r_sgx_enclave_id_t = self.enclave_id;
@@ -213,8 +204,7 @@ impl EnclaveConfig {
         proof_data_struct.set_signature(signature);
 
         // Verify AVR
-        check_verification_report(&proof_data_struct, config)
-            .expect("Invalid attestation report");
+        check_verification_report(&proof_data_struct, config).expect("Invalid attestation report");
         debug!("Verification successful!");
 
         // Fill up signup information from AVR
@@ -352,9 +342,8 @@ impl EnclaveConfig {
     /// Method to update signature revocation list received from IAS. Pass it to enclave. Note
     /// that this method is applicable only when PoET is run in SGX hardware mode.
     pub fn update_sig_rl(&mut self) {
-        let epid_group = unsafe {
-            ffi::create_string_from_char_ptr(self.enclave_id.epid_group as *mut c_char)
-        };
+        let epid_group =
+            unsafe { ffi::create_string_from_char_ptr(self.enclave_id.epid_group as *mut c_char) };
         let sig_rl_response = self
             .ias_client
             .get_signature_revocation_list(Option::from(epid_group.as_str()), None)
@@ -370,10 +359,7 @@ impl EnclaveConfig {
 /// Function to verify if specified verification report is valid. Performs signature verification
 /// along with other checks for presence of id, epid pseudonym, revocation reason, ISV enclave
 /// quote, nonce.
-fn check_verification_report(
-    proof_data: &SignUpInfoProof,
-    config: &PoetConfig,
-) -> Result<(), ()> {
+fn check_verification_report(proof_data: &SignUpInfoProof, config: &PoetConfig) -> Result<(), ()> {
     let verification_report = &proof_data.verification_report;
     let signature = &proof_data.signature;
     // First thing we will do is verify the signature over the verification report. The signature

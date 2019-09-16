@@ -15,15 +15,15 @@
 ------------------------------------------------------------------------------
 */
 
-pub mod sgx_struct_serde;
-pub mod sgx_struct_error;
-pub mod sgx_basename;
-pub mod sgx_report_body;
-pub mod sgx_cpu_svn;
 pub mod sgx_attributes;
+pub mod sgx_basename;
+pub mod sgx_cpu_svn;
 pub mod sgx_measurement;
-pub mod sgx_report_data;
 pub mod sgx_quote;
+pub mod sgx_report_body;
+pub mod sgx_report_data;
+pub mod sgx_struct_error;
+pub mod sgx_struct_serde;
 
 use sgx_structs::sgx_struct_error::SgxStructError;
 
@@ -42,5 +42,6 @@ pub trait SgxStruct {
     ///
     /// NOTE: All integer struct fields are parsed as little endian format
     fn parse_from_bytes(&mut self, raw_buffer: &[u8]) -> Result<(), SgxStructError>
-        where Self: std::marker::Sized;
+    where
+        Self: std::marker::Sized;
 }

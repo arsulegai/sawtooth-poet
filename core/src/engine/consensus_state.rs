@@ -18,11 +18,11 @@
 use engine::consensus_state_store::ConsensusStateStore;
 use engine::wait_time_cache::WaitTimeCache;
 use poet2_util;
+use protos::validator_registry::ValidatorInfo;
 use sawtooth_sdk::consensus::engine::*;
 use service::Poet2Service;
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use protos::validator_registry::ValidatorInfo;
 use validator_registry_view;
 
 /*
@@ -298,33 +298,36 @@ impl ConsensusState {
         // Get the current validator state
         let validator_state = self.get_validator_state(validator_info.clone());
         let total_block_claim_count = validator_state.total_block_claim_count + 1;
-        let key_block_claim_count =
-            if validator_info.get_signup_info().get_poet_public_key()
-                == validator_state.poet_public_key {
-                validator_state.key_block_claim_count + 1
-            } else {
-                1
-            };
+        let key_block_claim_count = if validator_info.get_signup_info().get_poet_public_key()
+            == validator_state.poet_public_key
+        {
+            validator_state.key_block_claim_count + 1
+        } else {
+            1
+        };
         let peerid_str = validator_info.clone().id;
         self.validators.insert(
             peerid_str,
             ValidatorState {
                 key_block_claim_count: key_block_claim_count,
-                poet_public_key: validator_info.get_signup_info().get_poet_public_key().to_string(),
+                poet_public_key: validator_info
+                    .get_signup_info()
+                    .get_poet_public_key()
+                    .to_string(),
                 total_block_claim_count: total_block_claim_count,
             },
         );
     }
 
-    pub fn get_validator_state(
-        &mut self,
-        validator_info: ValidatorInfo,
-    ) -> Box<ValidatorState> {
+    pub fn get_validator_state(&mut self, validator_info: ValidatorInfo) -> Box<ValidatorState> {
         let peerid_str = validator_info.clone().id;
         let validator_state = self.validators.get(&peerid_str);
         let val_state = ValidatorState {
             key_block_claim_count: 0,
-            poet_public_key: validator_info.get_signup_info().get_poet_public_key().to_string(),
+            poet_public_key: validator_info
+                .get_signup_info()
+                .get_poet_public_key()
+                .to_string(),
             total_block_claim_count: 0,
         };
         if validator_state.is_none() {

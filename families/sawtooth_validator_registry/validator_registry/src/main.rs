@@ -20,13 +20,13 @@ extern crate clap;
 extern crate crypto;
 #[macro_use]
 extern crate log;
+extern crate base64;
+extern crate common;
 extern crate log4rs;
 extern crate protobuf;
 extern crate sawtooth_sdk;
 extern crate serde;
 extern crate serde_json;
-extern crate common;
-extern crate base64;
 
 use log::LogLevelFilter;
 use log4rs::append::console::ConsoleAppender;

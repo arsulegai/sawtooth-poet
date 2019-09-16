@@ -15,9 +15,9 @@
 ------------------------------------------------------------------------------
 */
 
+use hex as hex_codec;
 use std::fs::File;
 use std::io::Read;
-use hex as hex_codec;
 
 /// Utility function to accept file name (with path if present) and return contents of file as
 /// String object. Note that error reading file would panic.

@@ -16,10 +16,10 @@
  */
 
 use crypto::{digest::Digest, sha2::Sha256};
+use protos::validator_registry::ValidatorInfo;
 use sawtooth_sdk::consensus::engine::BlockId;
 use service::Poet2Service;
 use std::{error, fmt};
-use protos::validator_registry::ValidatorInfo;
 
 #[derive(Debug, Clone)]
 pub struct VRVStateError;
@@ -65,7 +65,7 @@ pub fn get_validator_info_for_validator_id(
             Ok(info) => info,
             Err(_) => return Err(VRVStateError),
         };
-        return Ok(validator_info)
+        return Ok(validator_info);
     }
     Err(VRVStateError)
 }
@@ -79,7 +79,10 @@ pub fn get_poet_pubkey_for_validator_id(
         get_validator_info_for_validator_id(validator_id, &block_id.to_owned(), service);
     if validator_info.is_ok() {
         let validator_info = validator_info.unwrap();
-        return Ok(validator_info.get_signup_info().get_poet_public_key().to_string());
+        return Ok(validator_info
+            .get_signup_info()
+            .get_poet_public_key()
+            .to_string());
     }
     Err(VRVStateError)
 }

@@ -25,14 +25,14 @@ extern crate lazy_static;
 extern crate log;
 #[macro_use]
 extern crate serde_json;
-extern crate tokio;
-extern crate common;
-extern crate crypto;
-extern crate rand;
 extern crate base64;
 extern crate chrono;
-extern crate openssl;
+extern crate common;
+extern crate crypto;
 extern crate hex;
+extern crate openssl;
+extern crate rand;
+extern crate tokio;
 
 // modules defined in this crate
 pub mod client_utils;

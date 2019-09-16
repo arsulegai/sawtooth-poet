@@ -18,11 +18,16 @@
 use hyper::{header, header::HeaderValue, Body, Client, Method, Request, Uri};
 use ias_client::client_utils::read_response_future;
 use poet2_util::{
-    read_file_as_string_ignore_line_end, sha256_from_str, write_binary_file, sha512_of_bytearray,
-    to_hex_string, sha256_from_bytes,
+    read_file_as_string_ignore_line_end, sha256_from_bytes, sha256_from_str, sha512_of_bytearray,
+    to_hex_string, write_binary_file,
 };
 use poet_config::PoetConfig;
 use protobuf::{Message, RepeatedField};
+use protos::{
+    settings::{SettingProposal, SettingsPayload, SettingsPayload_Action},
+    validator_registry::{SignUpInfo, ValidatorRegistryPayload},
+};
+use rand::Rng;
 use sawtooth_sdk::{
     messages::{
         batch::{Batch, BatchHeader, BatchList},
@@ -30,16 +35,7 @@ use sawtooth_sdk::{
     },
     signing::{create_context, secp256k1::Secp256k1PrivateKey, PrivateKey, PublicKey, Signer},
 };
-use std::{env, path::Path, str, iter::repeat};
-use protos::{
-    validator_registry::{
-        ValidatorRegistryPayload, SignUpInfo,
-    },
-    settings::{
-        SettingProposal, SettingsPayload, SettingsPayload_Action,
-    }
-};
-use rand::Rng;
+use std::{env, iter::repeat, path::Path, str};
 
 const SETTING_ADDRESS_PART_SIZE: usize = 16;
 const VALIDATOR_REGISTRY: &str = "validator_registry";
@@ -100,7 +96,9 @@ pub fn do_create_registration(
     raw_payload.set_name(name);
     raw_payload.set_id(id);
     raw_payload.set_signup_info(signup_info);
-    let payload = raw_payload.write_to_bytes().expect("Error serializing the payload");
+    let payload = raw_payload
+        .write_to_bytes()
+        .expect("Error serializing the payload");
 
     // Namespace for the TP
     let vr_namespace = &sha256_from_str(VALIDATOR_REGISTRY)[..NAMESPACE_ADDRESS_LENGTH];
@@ -127,9 +125,11 @@ pub fn do_create_registration(
         get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES),
     ];
 
-    warn!("Input addresses are {} and {}",
+    warn!(
+        "Input addresses are {} and {}",
         get_address_for_setting(SAWTOOTH_POET_VALID_MEASUREMENTS),
-        get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES));
+        get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES)
+    );
 
     // Create transaction header
     let transaction_header = create_transaction_header(
@@ -164,25 +164,37 @@ pub fn do_create_registration(
 fn create_mr_enclave(
     signer: &Signer,
     public_key: &Box<dyn PublicKey>,
-    mr_enclave: String
+    mr_enclave: String,
 ) -> Batch {
     let address = get_address_for_setting(SAWTOOTH_POET_VALID_MEASUREMENTS);
     let other_address1 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_PROPOSALS);
     let other_address2 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_AUTHORIZED_KEYS);
     let other_address3 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_APPROVAL_THRESHOLD);
-    let input_addresses = [address.clone(), other_address1.clone(), other_address2.clone(), other_address3.clone()];
+    let input_addresses = [
+        address.clone(),
+        other_address1.clone(),
+        other_address2.clone(),
+        other_address3.clone(),
+    ];
     let ouput_addresses = [address, other_address2, other_address1, other_address3];
-    let nonce_bytes = rand::thread_rng().gen_iter::<u8>().take(64).collect::<Vec<u8>>();
+    let nonce_bytes = rand::thread_rng()
+        .gen_iter::<u8>()
+        .take(64)
+        .collect::<Vec<u8>>();
     let nonce = to_hex_string(&nonce_bytes);
     let mut raw_payload = SettingProposal::new();
     raw_payload.set_setting(SAWTOOTH_POET_VALID_MEASUREMENTS.to_string());
     raw_payload.set_value(mr_enclave);
     raw_payload.set_nonce(nonce.clone());
-    let proposal = raw_payload.write_to_bytes().expect("Error serializing the payload");
+    let proposal = raw_payload
+        .write_to_bytes()
+        .expect("Error serializing the payload");
     let mut raw_pay = SettingsPayload::new();
     raw_pay.set_action(SettingsPayload_Action::PROPOSE);
     raw_pay.set_data(proposal.clone());
-    let payload = raw_pay.write_to_bytes().expect("Error serializing the payload");
+    let payload = raw_pay
+        .write_to_bytes()
+        .expect("Error serializing the payload");
 
     let transaction_header = create_transaction_header_settings(
         &input_addresses,
@@ -192,37 +204,41 @@ fn create_mr_enclave(
         nonce,
     );
 
-    let transaction = create_transaction(
-        signer,
-        &transaction_header,
-        payload,
-    );
+    let transaction = create_transaction(signer, &transaction_header, payload);
 
     create_batch(signer, transaction)
 }
 
-fn create_basename(
-    signer: &Signer,
-    public_key: &Box<dyn PublicKey>,
-    basename: String
-) -> Batch {
+fn create_basename(signer: &Signer, public_key: &Box<dyn PublicKey>, basename: String) -> Batch {
     let address = get_address_for_setting(SAWTOOTH_POET_VALID_BASENAMES);
     let other_address1 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_PROPOSALS);
     let other_address2 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_AUTHORIZED_KEYS);
     let other_address3 = get_address_for_setting(SAWTOOTH_SETTINGS_VOTE_APPROVAL_THRESHOLD);
-    let input_addresses = [address.clone(), other_address1.clone(), other_address2.clone(), other_address3.clone()];
+    let input_addresses = [
+        address.clone(),
+        other_address1.clone(),
+        other_address2.clone(),
+        other_address3.clone(),
+    ];
     let ouput_addresses = [address, other_address2, other_address1, other_address3];
-    let nonce_bytes = rand::thread_rng().gen_iter::<u8>().take(64).collect::<Vec<u8>>();
+    let nonce_bytes = rand::thread_rng()
+        .gen_iter::<u8>()
+        .take(64)
+        .collect::<Vec<u8>>();
     let nonce = to_hex_string(&nonce_bytes);
     let mut raw_payload = SettingProposal::new();
     raw_payload.set_setting(SAWTOOTH_POET_VALID_BASENAMES.to_string());
     raw_payload.set_value(basename);
     raw_payload.set_nonce(nonce.clone());
-    let proposal = raw_payload.write_to_bytes().expect("Error serializing the payload");
+    let proposal = raw_payload
+        .write_to_bytes()
+        .expect("Error serializing the payload");
     let mut raw_pay = SettingsPayload::new();
     raw_pay.set_action(SettingsPayload_Action::PROPOSE);
     raw_pay.set_data(proposal.clone());
-    let payload = raw_pay.write_to_bytes().expect("Error serializing the payload");
+    let payload = raw_pay
+        .write_to_bytes()
+        .expect("Error serializing the payload");
 
     let transaction_header = create_transaction_header_settings(
         &input_addresses,
@@ -232,11 +248,7 @@ fn create_basename(
         nonce,
     );
 
-    let transaction = create_transaction(
-        signer,
-        &transaction_header,
-        payload,
-    );
+    let transaction = create_transaction(signer, &transaction_header, payload);
 
     create_batch(signer, transaction)
 }
@@ -365,7 +377,8 @@ fn get_address_for_setting(setting: &str) -> String {
     let mut address = String::new();
     address.push_str(CONFIGSPACE_NAMESPACE);
     address.push_str(
-        &setting.splitn(MAX_SETTINGS_PARTS, '.')
+        &setting
+            .splitn(MAX_SETTINGS_PARTS, '.')
             .chain(repeat(""))
             .map(config_short_hash)
             .take(MAX_SETTINGS_PARTS)

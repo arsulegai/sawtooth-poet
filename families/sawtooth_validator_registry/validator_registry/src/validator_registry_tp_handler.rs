@@ -150,12 +150,13 @@ impl TransactionHandler for ValidatorRegistryTransactionHandler {
                         "Could not update validator state",
                     )));
                 }
-            },
+            }
             Err(err) => {
-                return Err(ApplyError::InvalidTransaction(
-                    format!("Invalid Signup Info {:?}", err),
-                ));
-            },
+                return Err(ApplyError::InvalidTransaction(format!(
+                    "Invalid Signup Info {:?}",
+                    err
+                )));
+            }
         }
 
         Ok(())
@@ -190,13 +191,13 @@ impl ValidatorRegistryTransactionHandler {
             if anti_sybil_id == entry.key && !anti_sybil_id.is_empty() {
                 // remove the old validator_info data from state
                 validator_info_address = get_address(&entry.value);
-                if self.delete_address(context, &validator_info_address).is_err() {
-                    return Err(
-                        ApplyError::InvalidTransaction(
-                            format!("Error occurred while deleing the address"
-                            ),
-                        ),
-                    );
+                if self
+                    .delete_address(context, &validator_info_address)
+                    .is_err()
+                {
+                    return Err(ApplyError::InvalidTransaction(format!(
+                        "Error occurred while deleing the address"
+                    )));
                 }
             }
         }
@@ -209,22 +210,20 @@ impl ValidatorRegistryTransactionHandler {
         // Add updated state entries to ValidatorMap
         let validator_map_address = get_address(&String::from(VALIDATOR_MAP_STR));
         set_state(context, &validator_map_address, validator_map).map_err(|err| {
-            ApplyError::InternalError(
-                format!(
-                    "Failed to set state at validator map address {:?}", err,
-                ),
-            )
+            ApplyError::InternalError(format!(
+                "Failed to set state at validator map address {:?}",
+                err,
+            ))
         })?;
 
         // add the new validator_info to state
         let validator_info_address = get_address(validator_id);
         info!("{}", validator_info_address.clone());
         set_state(context, &validator_info_address, validator_info.clone()).map_err(|err| {
-            ApplyError::InternalError(
-                format!(
-                    "Failed to set state at validator info address {:?}", err,
-                ),
-            )
+            ApplyError::InternalError(format!(
+                "Failed to set state at validator info address {:?}",
+                err,
+            ))
         })?;
 
         info!(
@@ -246,24 +245,23 @@ impl ValidatorRegistryTransactionHandler {
                 None => Ok(ValidatorMap::new()),
                 Some(map_data) => parse_from(&map_data),
             },
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
     fn delete_address(
-        &self, context: &mut TransactionContext,
-        address: &str
+        &self,
+        context: &mut TransactionContext,
+        address: &str,
     ) -> Result<(), ApplyError> {
         let remove_addresses = vec![address.to_string()];
         let addresses = context.delete_state(remove_addresses);
 
         if addresses.is_err() || addresses.expect("Error reading addresses").is_none() {
-            return Err(
-                ApplyError::InternalError(
-                    format!(
-                        "Error deleting value at address {}.", address.to_string()
-                    )
-                ));
+            return Err(ApplyError::InternalError(format!(
+                "Error deleting value at address {}.",
+                address.to_string()
+            )));
         }
         Ok(())
     }

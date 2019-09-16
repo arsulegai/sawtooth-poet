@@ -15,8 +15,11 @@
 ------------------------------------------------------------------------------
 */
 
-use sgx_structs::{SgxStruct, sgx_struct_error::SgxStructError,
-                  sgx_struct_serde::{serialize_to_bytes, parse_from_bytes, SgxSerdeEndian}};
+use sgx_structs::{
+    sgx_struct_error::SgxStructError,
+    sgx_struct_serde::{parse_from_bytes, serialize_to_bytes, SgxSerdeEndian},
+    SgxStruct,
+};
 
 const STRUCT_SIZE: usize = 32;
 const DEFAULT_VALUE: u8 = 0;
@@ -61,7 +64,7 @@ impl SgxStruct for SgxBasename {
             Ok(name) => {
                 self.name = name;
                 Ok(())
-            },
+            }
             Err(err) => Err(err),
         }
     }

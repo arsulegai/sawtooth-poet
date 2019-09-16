@@ -26,7 +26,7 @@ use futures::{future, future::Future, stream::Stream};
 use hyper::{
     client::{HttpConnector, ResponseFuture},
     header::{HeaderMap, HeaderValue},
-    Body, Client, Error, StatusCode, Uri, Response,
+    Body, Client, Error, Response, StatusCode, Uri,
 };
 use std::{env, error, fmt};
 use tokio::runtime::current_thread::Runtime;
@@ -111,8 +111,7 @@ pub fn get_http_client() -> Result<Client<ProxyConnector<HttpConnector>, Body>, 
     let mut http = HttpConnector::new(1);
     // do not enforce http only URI
     http.enforce_http(false);
-    let mut proxy_connector =
-        ProxyConnector::new(http.clone()).expect("Error constructing client");
+    let mut proxy_connector = ProxyConnector::new(http.clone()).expect("Error constructing client");
     // Read proxy environment variable
     let http_proxy = env::var("http_proxy");
     if http_proxy.is_ok() {
@@ -200,7 +199,6 @@ pub fn read_body_as_string(body: Body) -> Result<String, ClientError> {
     // Wait for completion of task assigned to then
     .wait()
 }
-
 
 /// Function to construct ```hyper::Response``` for the supplied input parameters.
 /// Accepts http status code and Optional headers, body to be packed in response object.

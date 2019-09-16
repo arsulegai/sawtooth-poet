@@ -15,11 +15,11 @@
  * ------------------------------------------------------------------------------
  */
 
-use std::{fmt, error, error::Error};
 use bincode::ErrorKind;
+use std::{error, error::Error, fmt};
 
 #[derive(Debug)]
-pub struct SgxStructError{
+pub struct SgxStructError {
     inner: String,
 }
 
@@ -31,9 +31,7 @@ impl std::fmt::Display for SgxStructError {
 
 impl From<String> for SgxStructError {
     fn from(inner: String) -> SgxStructError {
-        SgxStructError {
-            inner,
-        }
+        SgxStructError { inner }
     }
 }
 
