@@ -59,4 +59,4 @@ RUN curl https://sh.rustup.rs -sSf > /usr/bin/rustup-init \
 ENV PATH=$PATH:/protoc3/bin:/project/sawtooth-poet/bin:/root/.cargo/bin \
     CARGO_INCREMENTAL=0
 
-RUN rustup update && rustup component add rustfmt-preview
+RUN rustup update && rustup component add rustfmt

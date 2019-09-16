@@ -23,7 +23,7 @@ dirs="
     $top_dir/ias_client
     $top_dir/ias_proxy
     $top_dir/sgx/rust_sgxffi
-    $top_dir/validator-registry-tp
+    $top_dir/families/sawtooth_validator_registry/validator_registry
 "
 
 exitcode=0
@@ -32,7 +32,15 @@ rustfmt --version
 
 for dir in $dirs; do
     cd $dir
+    directory_exists_exit=$?
     echo "$dir"
+
+    # abort the operation as failure, if the expected directory does not exist
+    # 0 = Directory exists
+    # 1 = Directory does not exists
+    if [[ $directory_exists_exit != 0 ]]; then
+        exitcode=1
+    fi
 
     echo "-- rustfmt"
 
