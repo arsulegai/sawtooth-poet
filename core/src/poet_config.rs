@@ -75,7 +75,7 @@ impl PoetConfig {
     }
 
     pub fn get_log_dir(&mut self) -> String {
-        return self.log_dir.clone();
+        self.log_dir.clone()
     }
 
     pub fn get_lib_enclave_path(&self) -> String {

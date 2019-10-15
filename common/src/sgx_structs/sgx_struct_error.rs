@@ -16,7 +16,7 @@
  */
 
 use bincode::ErrorKind;
-use std::{error, error::Error, fmt};
+use std::{error::Error, fmt};
 
 #[derive(Debug)]
 pub struct SgxStructError {
@@ -43,8 +43,8 @@ impl From<&'static str> for SgxStructError {
     }
 }
 
-impl From<Box<Error>> for SgxStructError {
-    fn from(err: Box<Error>) -> SgxStructError {
+impl From<Box<dyn Error>> for SgxStructError {
+    fn from(err: Box<dyn Error>) -> SgxStructError {
         SgxStructError {
             inner: format!("{:?}", err),
         }
@@ -59,12 +59,12 @@ impl From<Box<ErrorKind>> for SgxStructError {
     }
 }
 
-impl error::Error for SgxStructError {
+impl Error for SgxStructError {
     fn description(&self) -> &str {
         &self.inner
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn Error> {
         // Generic error, underlying cause isn't tracked
         None
     }

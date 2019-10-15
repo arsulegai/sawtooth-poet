@@ -287,7 +287,7 @@ impl Poet2Service {
         let mut payload_to_send = serial_cert;
         payload_to_send.push_str("#");
         payload_to_send.push_str(&cert_signature);
-        return payload_to_send;
+        payload_to_send
     }
 
     pub fn verify_wait_certificate(

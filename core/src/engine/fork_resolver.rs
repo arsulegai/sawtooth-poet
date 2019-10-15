@@ -14,12 +14,13 @@
  * limitations under the License.
  * ------------------------------------------------------------------------------
  */
+use sawtooth_sdk::consensus::engine::*;
+
 use enclave_sgx::WaitCertificate;
 use engine::consensus_state::ConsensusState;
 use engine::consensus_state_store::ConsensusStateStore;
 use engine::wait_time_cache::WaitTimeCache;
 use poet2_util;
-use sawtooth_sdk::consensus::engine::*;
 use service::Poet2Service;
 
 #[derive(Debug)]
@@ -109,7 +110,7 @@ impl ForkResolver {
                                 state_store,
                                 &mut self.wait_time_cache,
                             )
-                            .expect("This should never happen. Failed to get consensus state.");
+                                .expect("This should never happen. Failed to get consensus state.");
                             service.set_chain_clock(consensus_state.aggregate_chain_clock.clone());
                             fork_res_result = ForkResResult::CommitIncomingBlock;
                         } else {
@@ -139,22 +140,20 @@ impl ForkResolver {
                             fork_won = true;
                         }
                         // Fork lengths are equal
-                        else {
-                            if self.chain_cc == self.fork_cc {
-                                fork_won = if WaitCertificate::from(&block).duration_id
-                                    < WaitCertificate::from(&chain_head).duration_id
-                                {
-                                    true
-                                } else {
-                                    false
-                                };
+                        else if self.chain_cc == self.fork_cc {
+                            fork_won = if WaitCertificate::from(&block).duration_id
+                                < WaitCertificate::from(&chain_head).duration_id
+                            {
+                                true
                             } else {
-                                fork_won = if self.fork_cc < self.chain_cc {
-                                    true
-                                } else {
-                                    false
-                                };
-                            }
+                                false
+                            };
+                        } else {
+                            fork_won = if self.fork_cc < self.chain_cc {
+                                true
+                            } else {
+                                false
+                            };
                         }
                         if fork_won {
                             info!("Switching to fork.");
@@ -164,7 +163,7 @@ impl ForkResolver {
                                 state_store,
                                 &mut self.wait_time_cache,
                             )
-                            .expect("This should never happen. Failed to get consensus state.");
+                                .expect("This should never happen. Failed to get consensus state.");
                             service.set_chain_clock(consensus_state.aggregate_chain_clock.clone());
 
                             fork_res_result = ForkResResult::CommitIncomingBlock;

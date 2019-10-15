@@ -95,7 +95,7 @@ impl<'a> ConsensusStateStore<'a> {
         Ok(())
     }
 
-    pub fn delete_states_upto(&mut self, ancestor: BlockId, head: BlockId) -> () {
+    pub fn delete_states_upto(&mut self, ancestor: BlockId, head: BlockId) {
         let mut next = head;
         let mut count = 0_u64;
         loop {

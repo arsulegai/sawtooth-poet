@@ -32,7 +32,7 @@ use std::{env, error, fmt};
 use tokio::runtime::current_thread::Runtime;
 
 /// type definition for response sent from web server
-type ResponseBox = Box<Future<Item = Response<Body>, Error = Error> + Send>;
+type ResponseBox = Box<dyn Future<Item = Response<Body>, Error = Error> + Send>;
 
 /// Custom error for client utils
 #[derive(Debug, Clone)]
@@ -45,7 +45,7 @@ impl fmt::Display for ClientError {
 }
 
 impl error::Error for ClientError {
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         None
     }
 }

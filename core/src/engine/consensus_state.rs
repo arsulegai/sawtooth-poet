@@ -283,8 +283,8 @@ impl ConsensusState {
     pub fn validator_did_claim_block(
         &mut self,
         validator_info: &ValidatorInfo,
-        wait_certificate: &str,
-    ) -> () {
+        _wait_certificate: &str,
+    ) {
         //self.aggregate_local_mean += 5.5_f64; //wait_certificate.local_mean;
         self.total_block_claim_count += 1;
         //self.population_samples.push_back(PopulationSample {
@@ -309,12 +309,12 @@ impl ConsensusState {
         self.validators.insert(
             peerid_str,
             ValidatorState {
-                key_block_claim_count: key_block_claim_count,
+                key_block_claim_count,
                 poet_public_key: validator_info
                     .get_signup_info()
                     .get_poet_public_key()
                     .to_string(),
-                total_block_claim_count: total_block_claim_count,
+                total_block_claim_count,
             },
         );
     }

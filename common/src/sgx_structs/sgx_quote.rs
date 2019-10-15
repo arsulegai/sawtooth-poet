@@ -112,7 +112,7 @@ impl SgxStruct for SgxQuote {
                 self.report_body = report_body;
                 Ok(())
             }
-            Err(err) => return Err(err),
+            Err(err) => Err(err),
         }
     }
 }

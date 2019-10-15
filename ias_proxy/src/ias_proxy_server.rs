@@ -90,6 +90,7 @@ impl IasProxyServer {
                 // read_binary_file(config.get_spid_cert_file().as_str()),
                 // config.get_password(),
                 None,
+                true,
             )),
         }
     }
@@ -240,9 +241,10 @@ fn handle_post_request(req: Request<Body>, ias_client_obj: &IasClient) -> Respon
         // Cache is not presnet, request from IAS and add to cache
         None => {
             let result = ias_client_obj.post_verify_attestation(
-                quote.as_bytes(),
+                &quote,
                 Option::from(json_body.pse_manifest.as_str()),
                 Option::from(json_body.nonce.as_str()),
+                None,
             );
             let ias_response_result = ias_response_from_client_response(result);
             if ias_response_result.is_ok() {

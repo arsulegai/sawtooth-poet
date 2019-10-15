@@ -22,7 +22,7 @@ use protoc_rust::Customize;
 use std::{
     env, fs,
     io::Write,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 const PROTO_DIR_NAME: &str = "protos";

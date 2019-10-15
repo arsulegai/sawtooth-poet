@@ -16,24 +16,15 @@
 */
 
 use base64;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use openssl::hash::MessageDigest;
 use openssl::pkey::PKey;
-use openssl::pkey::Private;
-use openssl::sha;
 use openssl::sign::Signer;
 use rand::Rng;
 
-use common::sgx_structs::{sgx_basename::SgxBasename, sgx_measurement::SgxMeasurement, SgxStruct};
-use common::utils::{from_hex_string, to_hex_string};
-
-/// The basename and enclave measurement values we will put into and verify are in the enclave
-/// quote in the attestation verification report.
-const VALID_BASENAME: &str = "b785c58b77152cbe7fd55ee3851c499000000000000000000000000000000000";
-const VALID_ENCLAVE_MEASUREMENT: &str =
-    "c99f21955e38dbb03d2ca838d3af6e43ef438926ed02db4cc729380c8c7a174e";
+use common::utils::to_hex_string;
 
 /// We use the report private key PEM to create the private key used to sign attestation
 /// verification reports.  On the flip side, the report public key PEM is used to create the
@@ -114,10 +105,10 @@ pub fn get_avr(quote: &str, nonce: &str, originator_pub_key: &str) -> Result<(St
     };
 
     let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
-    signer.update(verification_report.as_bytes());
+    signer.update(verification_report.as_bytes()).expect("Failed to sign");
     let signature_bytes = signer.sign_to_vec().unwrap();
 
     let signature = base64::encode(&signature_bytes);
 
-    return Ok((verification_report, signature));
+    Ok((verification_report, signature))
 }

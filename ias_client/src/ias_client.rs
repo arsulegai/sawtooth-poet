@@ -18,10 +18,10 @@
 extern crate serde;
 
 use client_utils::{
-    get_http_client, read_response_future, send_response, ClientError, ClientResponse,
+    get_http_client, read_response_future, ClientError, ClientResponse,
 };
 use hyper::HeaderMap;
-use hyper::{header, header::HeaderValue, Body, Method, Request, StatusCode, Uri};
+use hyper::{header, header::HeaderValue, Body, Request, Uri};
 use ias_client_sim::get_avr;
 use serde_json;
 use std::{collections::HashMap, str, time::Duration};
@@ -156,7 +156,7 @@ impl IasClient {
             .method("GET")
             .uri(url.clone())
             .header(
-                "Ocp-Apim-Subscription-Key",
+                REQUEST_HEADER_KEY,
                 self.ias_subscription_key.clone(),
             )
             .body(Body::from(""))
@@ -177,8 +177,8 @@ impl IasClient {
     ///     Header of the response has nothing.
     fn simulate_sigrl(
         &self,
-        gid: Option<&str>,
-        api_path: Option<&str>,
+        _gid: Option<&str>,
+        _api_path: Option<&str>,
     ) -> Result<ClientResponse, ClientError> {
         debug!("Simulating SigRL");
         Ok(ClientResponse {
@@ -257,7 +257,7 @@ impl IasClient {
             .method("POST")
             .uri(url.clone())
             .header(
-                "Ocp-Apim-Subscription-Key",
+                REQUEST_HEADER_KEY,
                 self.ias_subscription_key.clone(),
             )
             .header(header::CONTENT_TYPE, "application/json")
@@ -284,7 +284,7 @@ impl IasClient {
     fn simulate_aep_request(
         &self,
         quote: &str,
-        manifest: Option<&str>,
+        _manifest: Option<&str>,
         nonce: Option<&str>,
         originator_pub_key: &str,
     ) -> Result<ClientResponse, ClientError> {

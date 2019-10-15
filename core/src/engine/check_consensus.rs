@@ -192,7 +192,7 @@ fn validator_is_claiming_too_early(block: &Block, service: &mut Poet2Service) ->
         return true;
     }
     debug!("Passed c-test");
-    return false;
+    false
 }
 
 //z-test

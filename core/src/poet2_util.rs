@@ -40,8 +40,7 @@ pub fn from_hex_string(str: String) -> Vec<u8> {
 }
 
 pub fn blockid_to_hex_string(blockid: BlockId) -> String {
-    let blockid_vec = Vec::from(blockid);
-    to_hex_string(&blockid_vec)
+    to_hex_string(&blockid)
 }
 
 pub fn format_block(block: &Block) -> String {
